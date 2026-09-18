@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<iso_project>
+	<track type="data">
+		<identifiers
+			system			="PLAYSTATION"
+			volume			="CHROMECITY"
+			volume_set		="CHROMECITY"
+			publisher		="EMAQAI"
+			data_preparer	="PSN00BSDK ${PSN00BSDK_VERSION}"
+			application		="PLAYSTATION"
+			copyright		="SYSTEM.CNF"
+		/>
+
+		<directory_tree>
+			<file name="SYSTEM.CNF" type="data" source="${PROJECT_SOURCE_DIR}/system.cnf" />
+			<file name="CCITY.EXE"  type="data" source="chromecity.exe" />
+
+			<dummy sectors="128"/>
+		</directory_tree>
+	</track>
+</iso_project>
