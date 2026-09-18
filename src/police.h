@@ -8,6 +8,9 @@
 #define WANTED_MAX       3
 #define EVADE_RADIUS     1400
 #define EVADE_TIME       (60 * 8) /* ~8 seconds clear of every unit -> heat drops. */
+#define HEAT_COOLDOWN    45       /* Frames of grace after gaining heat, so a few frames
+                                    * of continued contact with the same car/pedestrian
+                                    * don't spike the wanted level instantly. */
 
 typedef struct {
 	Vehicle veh;
@@ -17,6 +20,7 @@ typedef struct {
 typedef struct {
 	int       wanted;
 	int       evade_timer;
+	int       heat_cooldown;
 	PoliceCar cars[MAX_POLICE];
 } PoliceState;
 

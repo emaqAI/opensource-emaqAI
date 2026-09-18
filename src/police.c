@@ -16,6 +16,7 @@ void police_init(PoliceState *p, World *w) {
 
 	p->wanted = 0;
 	p->evade_timer = 0;
+	p->heat_cooldown = 0;
 	for (int i = 0; i < MAX_POLICE; i++)
 		p->cars[i].active = 0;
 }
@@ -48,8 +49,12 @@ static void sync_active_cars(PoliceState *p, World *w) {
 }
 
 void police_add_heat(PoliceState *p, World *w, int amount) {
+	if (p->heat_cooldown > 0)
+		return;
+
 	p->wanted = iclamp(p->wanted + amount, 0, WANTED_MAX);
 	p->evade_timer = 0;
+	p->heat_cooldown = HEAT_COOLDOWN;
 	sync_active_cars(p, w);
 }
 
@@ -60,6 +65,9 @@ void police_set_level(PoliceState *p, World *w, int level) {
 }
 
 void police_update(PoliceState *p, World *w, Vehicle *player) {
+	if (p->heat_cooldown > 0)
+		p->heat_cooldown--;
+
 	if (p->wanted > 0) {
 		if (police_is_near(p, vehicle_world_x(player), vehicle_world_z(player), EVADE_RADIUS)) {
 			p->evade_timer = 0;

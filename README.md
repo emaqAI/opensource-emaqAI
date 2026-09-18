@@ -21,21 +21,33 @@ standard PS1 user RAM base) and a bootable ISO (`chromecity.bin/.cue`) via
 `mkpsxiso`. The build is warning-free at `-Wall -Wextra`. RAM usage is
 ~133 KB (text+data+bss), a small fraction of the console's 2 MB.
 
-**What I could not verify in this sandbox:** actually booting it. PS1
-emulators (mednafen, DuckStation, etc.) and real hardware both require
-Sony's copyrighted BIOS ROM, which I don't have and deliberately did not try
-to obtain — I'm not going to go looking for a Sony BIOS dump online. So
-while I'm confident in the code (it's written closely against PSn00bSDK's
-own official examples for the GTE/camera/controller-handling patterns, and
-I traced through the fixed-point/rotation math by hand), the interactive,
-in-game behavior (camera framing, drift feel, collision feel, on-screen
-text layout) has **not been visually confirmed**. Please treat first boot
-as the real test, and expect to tweak a few constants (see below) once you
-see it move.
+**It has also actually been run and played**, in [PCSX-Redux](https://github.com/grumpycoders/pcsx-redux)
+built from source, booted through **OpenBIOS** (PCSX-Redux's MIT-licensed,
+from-scratch BIOS reimplementation — no copyrighted Sony BIOS was used or
+needed: with no retail BIOS configured, PCSX-Redux automatically falls back
+to it). This confirmed, with real screenshots: the title/story text screens
+render and advance correctly, the chase camera frames the car and follows
+it through turns, accelerate/brake/steer/friction all behave as intended,
+buildings/streets/lane markings render with correct perspective, AI traffic
+cars drive their routes, and the HUD (speed/wanted stars/objective distance)
+updates live. Testing this surfaced and fixed one real bug: colliding with
+a traffic car could add "wanted" heat on every frame of continued contact
+instead of once per collision, spiking the wanted level instantly (see
+`HEAT_COOLDOWN` in `src/police.h`).
 
-If you own a PS1 (or a legally-dumped BIOS from one), drop it into your
-emulator's BIOS slot and load `chromecity.cue`, or burn/ship the `.bin/.cue`
-to real hardware / an ODE (MODE, PicoStation, etc.).
+One known cosmetic glitch remains: a small stray-colored patch can flicker
+in a screen corner from certain camera angles. It's a near-plane clipping
+edge case — `src/clip.c` (adapted from PSn00bSDK's own example) only clips
+in screen space, not against the camera's near plane, so geometry very
+close to/behind the camera can occasionally project to a wrong on-screen
+spot. The official PSn00bSDK examples have this same limitation; properly
+fixing it means clipping polygons against the near plane before projection,
+which is more involved and left as a follow-up.
+
+If you own a PS1 (or a legally-dumped BIOS from one), you can of course
+also drop it into your emulator's BIOS slot and load `chromecity.cue`, or
+burn/ship the `.bin/.cue` to real hardware / an ODE (MODE, PicoStation,
+etc.) — nothing here depends on OpenBIOS specifically.
 
 ## Building
 
@@ -56,6 +68,26 @@ This produces, in `build/`:
 
 - `chromecity.exe` — a raw PS-EXE, loadable directly by most emulators.
 - `chromecity.bin` / `chromecity.cue` — a bootable CD image.
+
+## Testing it yourself with PCSX-Redux + OpenBIOS
+
+No BIOS file needed:
+
+```sh
+git clone --recurse-submodules https://github.com/grumpycoders/pcsx-redux.git
+cd pcsx-redux
+./dockermake.sh                       # builds bins/Release/pcsx-redux (needs Docker)
+export PATH="/opt/psn00bsdk/bin:$PATH"
+make -C src/mips/openbios -j4         # builds src/mips/openbios/openbios.bin
+
+# From the pcsx-redux checkout root, so it finds src/mips/openbios/openbios.bin:
+./pcsx-redux -run -loadexe /path/to/chromecity.exe
+```
+
+With no BIOS configured, PCSX-Redux logs `Retrying with the OpenBIOS` /
+`OpenBIOS detected` and boots straight into it. `-loadexe` hijacks the BIOS
+shell and jumps straight into the given PS-EXE — no CD image needed for
+quick iteration.
 
 ## Controls
 

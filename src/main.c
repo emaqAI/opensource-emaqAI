@@ -104,7 +104,7 @@ int main(int argc, const char **argv) {
 
 	render_init(&ctx, 20, 24, 30);
 	FntLoad(960, 0);
-	FntOpen(8, 8, 304, 224, 0, 512);
+	FntOpen(8, 16, 304, 216, 0, 512);
 
 	input_init();
 
