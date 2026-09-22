@@ -26,11 +26,14 @@ static InputState    input;
 static void read_player_controls(int *accel, int *steer, int *handbrake) {
 	*accel = 0;
 	*steer = 0;
-	*handbrake = (input.held & PAD_SQUARE) ? 1 : 0;
+	/* Handbrake moved to Circle now that Square is the brake. */
+	*handbrake = (input.held & PAD_CIRCLE) ? 1 : 0;
 
-	if (input.held & PAD_UP)
+	/* Cross = gas, Square = brake/reverse (primary controls); the D-Pad
+	 * still works the same way as a fallback/alternative. */
+	if (input.held & (PAD_UP | PAD_CROSS))
 		*accel = 1;
-	else if (input.held & PAD_DOWN)
+	else if (input.held & (PAD_DOWN | PAD_SQUARE))
 		*accel = -1;
 
 	if (input.held & PAD_LEFT)

@@ -93,13 +93,13 @@ quick iteration.
 
 ## Controls
 
-| Input                  | Action                              |
-|-------------------------|--------------------------------------|
-| D-Pad Up / Left stick up      | Accelerate                     |
-| D-Pad Down / Left stick down  | Brake / reverse                |
-| D-Pad Left/Right / stick      | Steer                          |
-| Square                        | Handbrake (tighter, harder turn) |
-| Cross / Start                 | Advance story/briefing text screens |
+| Input                          | Action                              |
+|--------------------------------|--------------------------------------|
+| Cross / D-Pad Up / stick up    | Accelerate                     |
+| Square / D-Pad Down / stick down | Brake / reverse               |
+| D-Pad Left/Right / stick       | Steer                          |
+| Circle                         | Handbrake (tighter, harder turn) |
+| Cross / Start                  | Advance story/briefing text screens (menus only - Cross drives while in free roam/missions) |
 
 ## What's actually implemented
 

@@ -4,7 +4,7 @@
 #include "world.h"
 #include "vehicle.h"
 
-#define MAX_TRAFFIC_CARS  4
+#define MAX_TRAFFIC_CARS  8
 #define MAX_WAYPOINTS     4
 #define MAX_PEDESTRIANS   6
 
