@@ -1,5 +1,7 @@
 # Chrome City
 
+![Chrome City cover art](cover.svg)
+
 An original open-world driving/crime game for the original Sony PlayStation
 (PSX/PS1), in the spirit of *Grand Theft Auto III* but built from scratch as
 real PS1 homebrew: procedurally generated city, drivable car with arcade
@@ -136,6 +138,21 @@ quick iteration.
 - Missions can't be "failed", only completed faster or slower — this
   avoids needing a retry/game-over flow, keeping the loop always moving
   forward.
+
+## Cover art
+
+`cover.svg` (rendered to `cover.png`) is the official cover art, built
+procedurally (plain SVG shapes/gradients/text, no external image generator).
+
+`tools/generate_cover.py` is an optional alternative: it calls OpenAI's
+Images API to generate cover art from a text prompt, if you'd rather have
+an AI-generated piece instead. It needs your own API key:
+
+```sh
+pip install openai
+export OPENAI_API_KEY="sk-..."   # your own key — never commit it or paste it anywhere
+python3 tools/generate_cover.py
+```
 
 ## Tuning
 
