@@ -3,3 +3,4 @@ build/
 *.obj
 *.elf
 *.map
+__pycache__/
