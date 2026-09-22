@@ -18,6 +18,7 @@ CAR_TEXTURES = {
     "tex_car_stripe": ("A_stripe.png", 640, 256, 112),
     "tex_car_taxi": ("B_taxi.png", 704, 256, 114),
     "tex_car_police": ("C_police.png", 768, 256, 116),
+    "tex_car_fire": ("E_fire.png", 832, 256, 118),
 }
 
 

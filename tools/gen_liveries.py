@@ -58,6 +58,30 @@ def variant_c_police():
     return img
 
 
+def variant_e_fire():
+    """Fire brigade: red body with a white/red "Battenburg" reflective
+    checker band, same grammar as the police livery but red instead of
+    navy/green - the classic European fire-engine look."""
+    img = base((200, 30, 30))  # fire-engine red
+    d = ImageDraw.Draw(img)
+
+    white = (240, 240, 235)
+
+    # White band across the doors.
+    d.rectangle([0, S // 2 - 15, S, S // 2 + 15], fill=white)
+
+    # Red/white checker stripe through the middle of the band.
+    cell = 6
+    y0, y1 = S // 2 - 5, S // 2 + 4
+    for x in range(0, S, cell):
+        if (x // cell) % 2 == 0:
+            d.rectangle([x, y0, x + cell - 1, y1], fill=(200, 30, 30))
+        else:
+            d.rectangle([x, y0, x + cell - 1, y1], fill=white)
+
+    return img
+
+
 def variant_d_muscle():
     """Dark body, twin white racing stripes (muscle-car style)."""
     img = base((35, 35, 40))
@@ -72,6 +96,7 @@ VARIANTS = {
     "B_taxi": variant_b_taxi,
     "C_police": variant_c_police,
     "D_muscle": variant_d_muscle,
+    "E_fire": variant_e_fire,
 }
 
 

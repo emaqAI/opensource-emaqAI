@@ -15,6 +15,7 @@ void vehicle_init(Vehicle *v, int x, int z, int heading, uint8_t r, uint8_t g, u
 	v->b = b;
 	v->tex = NULL;
 	v->shape = VSHAPE_SEDAN;
+	v->lightbar = LIGHTBAR_NONE;
 }
 
 int vehicle_update(Vehicle *v, World *w, int accel, int steer, int handbrake) {
@@ -219,6 +220,39 @@ static void draw_sports_body(
 	skirt(ctx, clip, hw, hl, body);
 }
 
+/* Roof-mounted beacon bar ("kogut"): two small lit boxes side by side,
+ * each drawn as a top face + a tail-facing face (the two faces the chase
+ * camera actually sees) so they read as lit domes, not flat decals. */
+static void draw_lightbar(
+	RenderContext *ctx, RECT *clip, int hw, int roof_y,
+	uint8_t r1, uint8_t g1, uint8_t b1, uint8_t r2, uint8_t g2, uint8_t b2
+) {
+	int lamp_hw = hw / 3;
+	int lamp_hl = 16;
+	int lamp_h  = 18;
+	int top_y   = roof_y - lamp_h;
+
+	/* Left beacon. */
+	render_quad_f4(ctx, clip,
+		-lamp_hw * 2, top_y,  lamp_hl,   0, top_y,  lamp_hl,
+		-lamp_hw * 2, top_y, -lamp_hl,   0, top_y, -lamp_hl,
+		r1, g1, b1);
+	render_quad_f4(ctx, clip,
+		-lamp_hw * 2, top_y,  -lamp_hl,   0, top_y,  -lamp_hl,
+		-lamp_hw * 2, roof_y, -lamp_hl,   0, roof_y, -lamp_hl,
+		r1, g1, b1);
+
+	/* Right beacon. */
+	render_quad_f4(ctx, clip,
+		0, top_y,  lamp_hl,   lamp_hw * 2, top_y,  lamp_hl,
+		0, top_y, -lamp_hl,   lamp_hw * 2, top_y, -lamp_hl,
+		r2, g2, b2);
+	render_quad_f4(ctx, clip,
+		0, top_y,   -lamp_hl,   lamp_hw * 2, top_y,  -lamp_hl,
+		0, roof_y,  -lamp_hl,   lamp_hw * 2, roof_y, -lamp_hl,
+		r2, g2, b2);
+}
+
 void vehicle_draw(Vehicle *v, RenderContext *ctx, MATRIX *cam_mtx, RECT *clip) {
 	MATRIX omtx;
 	SVECTOR rot = { 0, (short) v->heading, 0, 0 };
@@ -238,20 +272,38 @@ void vehicle_draw(Vehicle *v, RenderContext *ctx, MATRIX *cam_mtx, RECT *clip) {
 	uint8_t base_g = v->tex ? 128 : v->g;
 	uint8_t base_b = v->tex ? 128 : v->b;
 
+	int lightbar_hw = 90, lightbar_roof = -130;
+
 	switch (v->shape) {
 		case VSHAPE_SUV:
 			/* Taller, boxier cabin riding higher off the ground. */
 			draw_box_body(ctx, clip, v->tex, 98, 175, -185, -55, base_r, base_g, base_b);
+			lightbar_hw = 98;
+			lightbar_roof = -185;
 			break;
 
 		case VSHAPE_SPORTS:
 			/* Low, long cabin with a fastback taper toward the tail. */
 			draw_sports_body(ctx, clip, v->tex, 82, 195, -85, -25, -125, base_r, base_g, base_b);
+			lightbar_hw = 82;
+			lightbar_roof = -85;
 			break;
 
 		case VSHAPE_SEDAN:
 		default:
 			draw_box_body(ctx, clip, v->tex, 90, 190, -130, -30, base_r, base_g, base_b);
+			break;
+	}
+
+	switch (v->lightbar) {
+		case LIGHTBAR_POLICE:
+			draw_lightbar(ctx, clip, lightbar_hw, lightbar_roof, 220, 20, 20, 20, 40, 230);
+			break;
+		case LIGHTBAR_FIRE:
+			draw_lightbar(ctx, clip, lightbar_hw, lightbar_roof, 220, 20, 20, 220, 20, 20);
+			break;
+		case LIGHTBAR_NONE:
+		default:
 			break;
 	}
 }

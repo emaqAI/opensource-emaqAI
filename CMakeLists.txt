@@ -37,6 +37,7 @@ psn00bsdk_target_incbin(chromecity PRIVATE tim_roof          src/textures/tex_ro
 psn00bsdk_target_incbin(chromecity PRIVATE tim_car_stripe    src/textures/tex_car_stripe.tim)
 psn00bsdk_target_incbin(chromecity PRIVATE tim_car_taxi      src/textures/tex_car_taxi.tim)
 psn00bsdk_target_incbin(chromecity PRIVATE tim_car_police    src/textures/tex_car_police.tim)
+psn00bsdk_target_incbin(chromecity PRIVATE tim_car_fire      src/textures/tex_car_fire.tim)
 
 psn00bsdk_add_cd_image(
 	iso        # Target name

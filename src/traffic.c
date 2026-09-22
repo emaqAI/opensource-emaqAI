@@ -36,8 +36,13 @@ static void add_loop(Traffic *t, World *w, int r0, int c0, int r1, int c1, int s
 	const uint8_t *col = traffic_colors[color_id];
 	vehicle_init(&car->veh, car->wp_x[0], car->wp_z[0], 0, col[0], col[1], col[2]);
 	car->veh.shape = traffic_shapes[color_id];
-	if (color_id == 0) /* taxi yellow -> matches the taxi livery texture */
+	if (color_id == 0) { /* taxi yellow -> matches the taxi livery texture */
 		car->veh.tex = texture_get(TEX_CAR_TAXI);
+	} else if (color_id == 2) { /* the old flat red slot -> fire brigade */
+		car->veh.tex = texture_get(TEX_CAR_FIRE);
+		car->veh.shape = VSHAPE_SUV;
+		car->veh.lightbar = LIGHTBAR_FIRE;
+	}
 	(void) seed_offset;
 
 	t->car_count++;
