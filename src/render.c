@@ -3,6 +3,29 @@
 #include "render.h"
 #include "clip.h"
 
+/* Raw per-vertex Z-FIFO values (SZ0..SZ3), read right after the 4-point
+ * transform, are each individually clamped to 0 by the GTE hardware when
+ * that vertex is behind (or exactly at) the camera plane. quad_clip() only
+ * tests the already-projected screen XY, and avsz3/avsz4 only look at the
+ * *average* depth across vertices - so a quad with one vertex behind the
+ * camera and the rest safely in front slips past both: the average depth
+ * looks fine, and the one bad vertex's screen XY (garbage from dividing by
+ * a near-zero/clamped Z) doesn't reliably land in a Cohen-Sutherland
+ * "outside" region shared with the others. The result is a wild,
+ * screen-filling misshapen polygon instead of a clean cull - exactly the
+ * "textures disappear / garbage fills the screen" glitch this checks for.
+ * Rejecting the whole primitive when any vertex is this close is a minor
+ * visual pop (one quad missing for a frame) instead of that. */
+#define NEAR_SZ_THRESHOLD 32
+
+static int any_vertex_too_close(uint32_t *sz, int count) {
+	for (int i = 0; i < count; i++) {
+		if ((uint16_t) sz[i] < NEAR_SZ_THRESHOLD)
+			return 1;
+	}
+	return 0;
+}
+
 void render_init(RenderContext *ctx, int r, int g, int b) {
 	ResetGraph(0);
 
@@ -91,6 +114,13 @@ void render_quad_f4(
 	gte_rtps();
 	gte_stsxy(&sxy[3]);
 
+	{
+		uint32_t sz[4];
+		gte_stsz4c(sz);
+		if (any_vertex_too_close(sz, 4))
+			return;
+	}
+
 	if (quad_clip(clip, &sxy[0], &sxy[1], &sxy[2], &sxy[3]))
 		return;
 
@@ -139,6 +169,13 @@ void render_quad_ft4(
 	gte_ldv0(&v3);
 	gte_rtps();
 	gte_stsxy(&sxy[3]);
+
+	{
+		uint32_t sz[4];
+		gte_stsz4c(sz);
+		if (any_vertex_too_close(sz, 4))
+			return;
+	}
 
 	if (quad_clip(clip, &sxy[0], &sxy[1], &sxy[2], &sxy[3]))
 		return;

@@ -37,14 +37,23 @@ a traffic car could add "wanted" heat on every frame of continued contact
 instead of once per collision, spiking the wanted level instantly (see
 `HEAT_COOLDOWN` in `src/police.h`).
 
-One known cosmetic glitch remains: a small stray-colored patch can flicker
-in a screen corner from certain camera angles. It's a near-plane clipping
-edge case — `src/clip.c` (adapted from PSn00bSDK's own example) only clips
-in screen space, not against the camera's near plane, so geometry very
-close to/behind the camera can occasionally project to a wrong on-screen
-spot. The official PSn00bSDK examples have this same limitation; properly
-fixing it means clipping polygons against the near plane before projection,
-which is more involved and left as a follow-up.
+An earlier version of this had a much worse version of a near-plane
+clipping bug than originally diagnosed: `src/clip.c` (adapted from
+PSn00bSDK's own example, which has the same limitation) only clips
+in screen space, using the already-projected 2D coordinates - it never
+looks at whether a vertex was behind the camera before projection. A quad
+with one vertex behind the camera and the rest in front would slip past
+both that screen-space test *and* the depth-sort's cheap average-depth
+reject (the bad vertex's garbage screen position doesn't reliably share
+the same "outside" edge as the good ones, and the average of one bad
+depth with several good ones can still land in-range) - producing a wild,
+screen-filling misshapen polygon instead of being culled, most visible in
+close-contact collisions with other vehicles. `render_quad_f4()`/
+`render_quad_ft4()` (`src/render.c`) now additionally reject the whole
+primitive if *any* individual vertex's raw GTE depth (SZ) is near zero
+(behind/at the camera plane) before building it - a real fix, not just a
+narrower version of the same workaround, verified by deliberately forcing
+repeated close-range collisions in PCSX-Redux.
 
 If you own a PS1 (or a legally-dumped BIOS from one), you can of course
 also drop it into your emulator's BIOS slot and load `chromecity.cue`, or
