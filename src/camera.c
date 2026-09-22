@@ -19,7 +19,13 @@ void camera_update(Camera *cam, Vehicle *target, MATRIX *out) {
 	int cam_z = car_z - fx_mul(fwd_z, CAM_DIST);
 	int cam_y = -CAM_HEIGHT;
 
-	SVECTOR trot = { (short) CAM_PITCH, (short) cam->heading, 0, 0 };
+	/* This builds a *view* (world->camera) matrix, not an object matrix, so
+	 * unlike vehicle_draw()'s RotMatrix(heading) (which places an object
+	 * facing that heading), the rotation here has to be the inverse of the
+	 * camera's own facing - i.e. negated - or the picture spins the wrong
+	 * way and by the wrong amount every time the camera's heading changes
+	 * (most visible while turning, since heading is otherwise constant). */
+	SVECTOR trot = { (short) CAM_PITCH, (short) -cam->heading, 0, 0 };
 	VECTOR  tpos;
 	MATRIX  mtx;
 
