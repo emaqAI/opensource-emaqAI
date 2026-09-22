@@ -300,7 +300,7 @@ void vehicle_draw(Vehicle *v, RenderContext *ctx, MATRIX *cam_mtx, RECT *clip) {
 			draw_lightbar(ctx, clip, lightbar_hw, lightbar_roof, 220, 20, 20, 20, 40, 230);
 			break;
 		case LIGHTBAR_FIRE:
-			draw_lightbar(ctx, clip, lightbar_hw, lightbar_roof, 220, 20, 20, 220, 20, 20);
+			draw_lightbar(ctx, clip, lightbar_hw, lightbar_roof, 20, 40, 230, 20, 40, 230);
 			break;
 		case LIGHTBAR_NONE:
 		default:

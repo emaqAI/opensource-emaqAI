@@ -8,7 +8,7 @@
 
 static const uint8_t traffic_colors[TRAFFIC_COLOR_COUNT][3] = {
 	{ 210, 200,  40 }, /* taxi yellow  */
-	{  60, 120, 200 }, /* blue         */
+	{ 140,  60, 200 }, /* purple SUV   */
 	{ 200,  60,  60 }, /* red          */
 	{  60, 180,  90 }, /* green        */
 };

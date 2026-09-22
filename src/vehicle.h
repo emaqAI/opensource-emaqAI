@@ -13,7 +13,7 @@ typedef enum {
 typedef enum {
 	LIGHTBAR_NONE = 0,
 	LIGHTBAR_POLICE, /* Two beacons, red + blue ("kogut"). */
-	LIGHTBAR_FIRE    /* Two beacons, red + red.            */
+	LIGHTBAR_FIRE    /* Two beacons, blue + blue.          */
 } LightbarType;
 
 /* A car's world position is stored pre-scaled by ONE (4096) for smooth
