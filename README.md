@@ -110,16 +110,16 @@ quick iteration.
   grid (5x5 blocks) with varied building heights, textured facades (concrete/
   brick/glass, randomly assigned per building) and painted lane lines, plus
   AABB collision for buildings.
-- **Textures** (`src/texture.c`, `src/textures/*.tim`): 10 real PS1 textures
+- **Textures** (`src/texture.c`, `src/textures/*.tim`): 11 real PS1 textures
   drawn with `POLY_FT4` — 6 environment ones (road, sidewalk, 3 building
-  facades, roof; 64x64 8bpp CLUT) plus 4 vehicle liveries (player stripe,
-  taxi, police, fire brigade; 64x64 4bpp CLUT, since flat 4-5 color
-  patterns don't need 256 colors). Road/sidewalk are procedural (so they
-  tile seamlessly); the rest came from text prompts via a free image API,
-  except the vehicle liveries, which turned out to need to be procedural
-  too — an AI photo texture downscales to mush at 64x64 when it's a
-  geometric pattern (stripe, checker) rather than an irregular material.
-  See "Regenerating textures" below.
+  facades, roof; 64x64 8bpp CLUT) plus 5 vehicle liveries (player stripe,
+  taxi, police, fire brigade, ambulance; 64x64 4bpp CLUT, since flat 4-5
+  color patterns don't need 256 colors). Road/sidewalk are procedural (so
+  they tile seamlessly); the rest came from text prompts via a free image
+  API, except the vehicle liveries, which turned out to need to be
+  procedural too — an AI photo texture downscales to mush at 64x64 when
+  it's a geometric pattern (stripe, checker) rather than an irregular
+  material. See "Regenerating textures" below.
 - **Vehicle physics** (`src/vehicle.c`): fixed-point accel/brake/steer/
   handbrake model shared by the player, traffic and police (same struct,
   different "driver").
@@ -128,14 +128,16 @@ quick iteration.
   (taller, boxier, rides higher), `VSHAPE_SPORTS` (low cabin, fastback
   taper toward the tail, small spoiler). The fastback slopes toward the
   *tail*, not the nose: the camera always looks at the back of the car, so
-  a sloped hood would never actually be seen. Police and fire-brigade cars
-  additionally get a roof beacon bar ("kogut") — two small lit boxes,
-  red+blue for police, red+red for fire — drawn as flat, untextured quads
-  so they're unaffected by the vehicle's own livery texture.
+  a sloped hood would never actually be seen. Police, fire-brigade and
+  ambulance cars additionally get a roof beacon bar ("kogut") — two small
+  lit boxes, red+blue for police, blue+blue for fire/ambulance — drawn as
+  flat, untextured quads so they're unaffected by the vehicle's own livery
+  texture.
 - **Camera** (`src/camera.c`): a smoothed third-person chase camera.
-- **Traffic AI** (`src/traffic.c`): cars looping fixed street routes
-  (including a fire-brigade truck, red/white livery + lightbar, in the
-  slot that used to be a plain flat red car), wandering-then-scattering
+- **Traffic AI** (`src/traffic.c`): cars looping fixed street routes,
+  including a fire-brigade truck (red/white livery + lightbar) and an
+  ambulance (white/red-cross livery + lightbar) in the two slots that used
+  to be plain flat-colored cars, plus wandering-then-scattering
   pedestrians, both steered without a lookup table via a cross-product
   "steer toward point" trick (see `fixed.h`).
 - **Police / wanted level** (`src/police.c`): 0-3 star wanted level, heat
@@ -150,11 +152,12 @@ quick iteration.
 
 ## Known simplifications (by design, not oversights)
 
-- Only 4 vehicles have a real livery texture: the player's car (white
-  racing stripe), the taxi-yellow traffic car, police cars, and the
-  fire-brigade truck. The other 2 traffic colors stay flat-shaded — same
-  `Vehicle.tex` mechanism, just no VRAM budget left for more without
-  repacking the existing texture pages tighter.
+- Only 5 vehicles have a real livery texture: the player's car (white
+  racing stripe), the taxi-yellow traffic car, police cars, the
+  fire-brigade truck, and the ambulance. The one remaining traffic color
+  (purple SUV) stays flat-shaded — same `Vehicle.tex` mechanism, just no
+  VRAM budget left for more without repacking the existing texture pages
+  tighter.
 - No true drift/slip physics — the handbrake tightens the turn radius and
   brakes hard, but the car's velocity always points along its heading.
 - No memory card save. PSn00bSDK 0.24 doesn't ship a high-level card API
@@ -189,9 +192,9 @@ python3 tools/make_game_textures.py                          # crops/quantizes -
   native 8bpp-CLUT texture format) and picks its VRAM placement — see the
   comment at the top of that file for the layout and why it's safe
   relative to the framebuffers and debug font.
-- `tools/make_car_textures.py` does the same for the 4 vehicle liveries in
-  `tools/texture_src/{A_stripe,B_taxi,C_police,E_fire}.png` (4bpp instead
-  of 8bpp; `D_muscle` is generated but not currently used by any vehicle —
+- `tools/make_car_textures.py` does the same for the 5 vehicle liveries in
+  `tools/texture_src/{A_stripe,B_taxi,C_police,E_fire,F_ambulance}.png`
+  (4bpp instead of 8bpp; `D_muscle` is generated but not currently used —
   a free livery slot for a future car). Regenerate liveries with
   `python3 tools/gen_liveries.py` (in `tools/`, uses `PIL.ImageDraw` — flat
   geometric shapes, not a source photo) then `python3 tools/make_car_textures.py`.

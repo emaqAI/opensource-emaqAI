@@ -2,8 +2,9 @@
 """Converts the approved car livery PNGs (tools/texture_src/car_*.png) into
 4bpp-CLUT .tim files. 4bpp is enough headroom for these (4-5 flat colors
 each) and only needs a 64-real-pixel-wide VRAM page, vs 128 for 8bpp -
-see the VRAM map comment in make_game_textures.py; these three sit in the
-y=256 row, right after the wall_glass/roof pages end at x=640.
+see the VRAM map comment in make_game_textures.py; these all sit in the
+y=256 row, right after the wall_glass/roof pages end at x=640, packed
+64 pixels wide each (640, 704, 768, 832, 896, ...).
 """
 
 import struct
@@ -19,6 +20,7 @@ CAR_TEXTURES = {
     "tex_car_taxi": ("B_taxi.png", 704, 256, 114),
     "tex_car_police": ("C_police.png", 768, 256, 116),
     "tex_car_fire": ("E_fire.png", 832, 256, 118),
+    "tex_car_ambulance": ("F_ambulance.png", 896, 256, 120),
 }
 
 

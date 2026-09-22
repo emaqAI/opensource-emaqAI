@@ -11,6 +11,7 @@ extern const uint32_t tim_car_stripe[];
 extern const uint32_t tim_car_taxi[];
 extern const uint32_t tim_car_police[];
 extern const uint32_t tim_car_fire[];
+extern const uint32_t tim_car_ambulance[];
 
 static Texture textures[TEX_COUNT];
 
@@ -39,6 +40,7 @@ void textures_load(void) {
 	load_one(TEX_CAR_TAXI, tim_car_taxi);
 	load_one(TEX_CAR_POLICE, tim_car_police);
 	load_one(TEX_CAR_FIRE, tim_car_fire);
+	load_one(TEX_CAR_AMBULANCE, tim_car_ambulance);
 }
 
 Texture *texture_get(TextureId id) {

@@ -82,6 +82,26 @@ def variant_e_fire():
     return img
 
 
+def variant_f_ambulance():
+    """Ambulance: white body with a red door band and a small red cross,
+    same grammar as the other emergency liveries but white instead of a
+    saturated body color."""
+    img = base((240, 240, 238))  # white
+    d = ImageDraw.Draw(img)
+
+    red = (200, 30, 30)
+
+    # Red band across the doors.
+    d.rectangle([0, S // 2 - 12, S, S // 2 + 12], fill=red)
+
+    # A simple red cross centered in the band.
+    cx, cy = S // 2, S // 2
+    d.rectangle([cx - 3, cy - 9, cx + 2, cy + 8], fill=(240, 240, 238))
+    d.rectangle([cx - 9, cy - 3, cx + 8, cy + 2], fill=(240, 240, 238))
+
+    return img
+
+
 def variant_d_muscle():
     """Dark body, twin white racing stripes (muscle-car style)."""
     img = base((35, 35, 40))
@@ -97,6 +117,7 @@ VARIANTS = {
     "C_police": variant_c_police,
     "D_muscle": variant_d_muscle,
     "E_fire": variant_e_fire,
+    "F_ambulance": variant_f_ambulance,
 }
 
 

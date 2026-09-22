@@ -42,6 +42,10 @@ static void add_loop(Traffic *t, World *w, int r0, int c0, int r1, int c1, int s
 		car->veh.tex = texture_get(TEX_CAR_FIRE);
 		car->veh.shape = VSHAPE_SUV;
 		car->veh.lightbar = LIGHTBAR_FIRE;
+	} else if (color_id == 3) { /* the old flat green slot -> ambulance */
+		car->veh.tex = texture_get(TEX_CAR_AMBULANCE);
+		car->veh.shape = VSHAPE_SUV;
+		car->veh.lightbar = LIGHTBAR_AMBULANCE;
 	}
 	(void) seed_offset;
 

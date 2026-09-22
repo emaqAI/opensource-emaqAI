@@ -13,6 +13,7 @@ typedef enum {
 	TEX_CAR_TAXI,
 	TEX_CAR_POLICE,
 	TEX_CAR_FIRE,
+	TEX_CAR_AMBULANCE,
 	TEX_COUNT
 } TextureId;
 
