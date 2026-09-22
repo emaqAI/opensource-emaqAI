@@ -18,9 +18,10 @@
 #define MAX_BUILDINGS (CITY_BLOCKS * CITY_BLOCKS)
 
 typedef struct {
-	int minx, minz, maxx, maxz; /* World-space footprint (raw units). */
-	int height;                 /* Extrusion height, roof at y = -height. */
-	uint8_t r, g, b;             /* Base wall color.                       */
+	int     minx, minz, maxx, maxz; /* World-space footprint (raw units). */
+	int     height;                 /* Extrusion height, roof at y = -height. */
+	int     tex_id;                 /* TEX_WALL_* variant for all 4 walls.    */
+	uint8_t tint;                   /* Per-building brightness, ~112-144.     */
 } Building;
 
 typedef struct {

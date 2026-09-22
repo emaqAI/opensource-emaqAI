@@ -23,9 +23,17 @@ psn00bsdk_add_executable(chromecity GPREL
 	src/mission.c
 	src/hud.c
 	src/input.c
+	src/texture.c
 )
 
 target_include_directories(chromecity PRIVATE src)
+
+psn00bsdk_target_incbin(chromecity PRIVATE tim_road          src/textures/tex_road.tim)
+psn00bsdk_target_incbin(chromecity PRIVATE tim_sidewalk      src/textures/tex_sidewalk.tim)
+psn00bsdk_target_incbin(chromecity PRIVATE tim_wall_concrete src/textures/tex_wall_concrete.tim)
+psn00bsdk_target_incbin(chromecity PRIVATE tim_wall_brick    src/textures/tex_wall_brick.tim)
+psn00bsdk_target_incbin(chromecity PRIVATE tim_wall_glass    src/textures/tex_wall_glass.tim)
+psn00bsdk_target_incbin(chromecity PRIVATE tim_roof          src/textures/tex_roof.tim)
 
 psn00bsdk_add_cd_image(
 	iso        # Target name

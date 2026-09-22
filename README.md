@@ -107,8 +107,14 @@ quick iteration.
   depth sorting, screen-space quad clipping adapted from PSn00bSDK's own
   `fpscam` example (`src/clip.c`).
 - **World** (`src/world.c`): a procedurally generated Manhattan-style street
-  grid (5x5 blocks) with varied building heights/colors and painted lane
-  lines, plus AABB collision for buildings.
+  grid (5x5 blocks) with varied building heights, textured facades (concrete/
+  brick/glass, randomly assigned per building) and painted lane lines, plus
+  AABB collision for buildings.
+- **Textures** (`src/texture.c`, `src/textures/*.tim`): 6 real PS1 textures
+  (road, sidewalk, 3 building facades, roof) — 64x64, 8bpp CLUT — drawn with
+  `POLY_FT4`. Road/sidewalk are procedurally generated (so they tile
+  seamlessly); the building/roof textures were generated from text prompts
+  via a free image API. See "Regenerating textures" below.
 - **Vehicle physics** (`src/vehicle.c`): fixed-point accel/brake/steer/
   handbrake model shared by the player, traffic and police (same struct,
   different "driver").
@@ -127,8 +133,9 @@ quick iteration.
 
 ## Known simplifications (by design, not oversights)
 
-- No textures — flat-shaded polygons only, keeps the whole thing simple
-  and guaranteed to fit comfortably in VRAM/RAM.
+- Buildings, road and sidewalks are textured; the player/traffic/police
+  cars stay flat-shaded boxes — texturing tiny car panels has much less
+  visual payoff than the environment did, so that's left as a follow-up.
 - No true drift/slip physics — the handbrake tightens the turn radius and
   brakes hard, but the car's velocity always points along its heading.
 - No memory card save. PSn00bSDK 0.24 doesn't ship a high-level card API
@@ -138,6 +145,33 @@ quick iteration.
 - Missions can't be "failed", only completed faster or slower — this
   avoids needing a retry/game-over flow, keeping the loop always moving
   forward.
+
+## Regenerating textures
+
+The 6 in-game textures (`src/textures/*.tim`) are built from source images
+in `tools/texture_src/`:
+
+```sh
+pip install Pillow
+python3 tools/gen_procedural_textures.py tools/texture_src   # road + sidewalk
+python3 tools/make_game_textures.py                          # crops/quantizes -> src/textures/*.tim
+```
+
+- `tex_road` / `tex_sidewalk` are generated procedurally (`tools/gen_procedural_textures.py`,
+  toroidal value noise) so they tile perfectly edge-to-edge across many
+  street quads — an AI image generator's idea of "seamless" reliably
+  isn't, at this scale, so this is the one place procedural beat AI.
+- The 3 wall variants and the roof were generated from text prompts via
+  [pollinations.ai](https://pollinations.ai) (free, no API key) and then
+  cropped/quantized to a 256-color palette by `tools/make_game_textures.py`.
+  They're mapped once per wall (not tiled), so minor seams at the source
+  image's edges never show.
+- `tools/make_game_textures.py` also hand-writes each `.tim` file (PS1's
+  native 8bpp-CLUT texture format) and picks its VRAM placement — see the
+  comment at the top of that file for the layout and why it's safe
+  relative to the framebuffers and debug font.
+- `tools/generate_cover.py` (below) is a separate, OpenAI-based path if you'd
+  rather generate art through DALL-E instead of the free/procedural route.
 
 ## Cover art
 

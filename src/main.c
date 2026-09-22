@@ -12,6 +12,7 @@
 #include "hud.h"
 #include "input.h"
 #include "fixed.h"
+#include "texture.h"
 
 static RenderContext ctx;
 static World         world;
@@ -103,6 +104,7 @@ int main(int argc, const char **argv) {
 	(void) argv;
 
 	render_init(&ctx, 20, 24, 30);
+	textures_load();
 	FntLoad(960, 0);
 	FntOpen(8, 16, 304, 216, 0, 512);
 

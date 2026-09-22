@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <psxgpu.h>
 #include <psxgte.h>
+#include "texture.h"
 
 #define SCREEN_XRES 320
 #define SCREEN_YRES 240
@@ -55,6 +56,15 @@ void render_quad_f4(
 	int x0, int y0, int z0, int x1, int y1, int z1,
 	int x2, int y2, int z2, int x3, int y3, int z3,
 	uint8_t r, uint8_t g, uint8_t b
+);
+
+/* Same as render_quad_f4(), but textured: draws a full 0..63 UV tile of
+ * 'tex' across the quad, modulated by (r,g,b) (128,128,128 = unlit). */
+void render_quad_ft4(
+	RenderContext *ctx, RECT *clip,
+	int x0, int y0, int z0, int x1, int y1, int z1,
+	int x2, int y2, int z2, int x3, int y3, int z3,
+	Texture *tex, uint8_t r, uint8_t g, uint8_t b
 );
 
 static inline RenderBuffer *render_active(RenderContext *ctx) {

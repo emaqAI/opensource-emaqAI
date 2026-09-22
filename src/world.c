@@ -6,11 +6,11 @@
 #define quad(ctx, clip, z_hint, x0,y0,z0, x1,y1,z1, x2,y2,z2, x3,y3,z3, r,g,b) \
 	render_quad_f4((ctx), (clip), (x0),(y0),(z0), (x1),(y1),(z1), (x2),(y2),(z2), (x3),(y3),(z3), (r),(g),(b))
 
-static void shade(int r, int g, int b, int pct, uint8_t *outr, uint8_t *outg, uint8_t *outb) {
-	*outr = (uint8_t) iclamp((r * pct) / 100, 0, 255);
-	*outg = (uint8_t) iclamp((g * pct) / 100, 0, 255);
-	*outb = (uint8_t) iclamp((b * pct) / 100, 0, 255);
-}
+#define tquad(ctx, clip, x0,y0,z0, x1,y1,z1, x2,y2,z2, x3,y3,z3, tex, r,g,b) \
+	render_quad_ft4((ctx), (clip), (x0),(y0),(z0), (x1),(y1),(z1), (x2),(y2),(z2), (x3),(y3),(z3), (tex), (r),(g),(b))
+
+#define WALL_TEX_COUNT 3
+static const TextureId wall_textures[WALL_TEX_COUNT] = { TEX_WALL_CONCRETE, TEX_WALL_BRICK, TEX_WALL_GLASS };
 
 void world_generate(World *w) {
 	int i;
@@ -34,14 +34,8 @@ void world_generate(World *w) {
 			b->minz = w->tile_offset[row];
 			b->maxz = w->tile_offset[row + 1];
 			b->height = BUILD_MIN_H + (rand() % (BUILD_MAX_H - BUILD_MIN_H));
-
-			int tint = rand() % 4;
-			switch (tint) {
-				case 0: b->r = 150; b->g = 150; b->b = 165; break; /* concrete */
-				case 1: b->r = 120; b->g = 140; b->b = 160; break; /* steel blue */
-				case 2: b->r = 160; b->g = 120; b->b = 100; break; /* brick */
-				default: b->r = 130; b->g = 130; b->b = 130; break; /* grey */
-			}
+			b->tex_id = rand() % WALL_TEX_COUNT;
+			b->tint = (uint8_t) (112 + (rand() % 32));
 		}
 	}
 }
@@ -51,9 +45,16 @@ void world_tile_center(World *w, int row, int col, int *x, int *z) {
 	*z = (w->tile_offset[row] + w->tile_offset[row + 1]) >> 1;
 }
 
+static void shade_tint(uint8_t base, int pct, uint8_t *out) {
+	*out = (uint8_t) iclamp((base * pct) / 100, 0, 255);
+}
+
 void world_draw(World *w, RenderContext *ctx, MATRIX *cam_mtx, RECT *clip) {
 	gte_SetRotMatrix(cam_mtx);
 	gte_SetTransMatrix(cam_mtx);
+
+	Texture *road_tex = texture_get(TEX_ROAD);
+	Texture *roof_tex = texture_get(TEX_ROOF);
 
 	/* Road tiles + lane markings. */
 	for (int row = 0; row < TILE_GRID; row++) {
@@ -65,10 +66,10 @@ void world_draw(World *w, RenderContext *ctx, MATRIX *cam_mtx, RECT *clip) {
 			int x0 = w->tile_offset[col],     x1 = w->tile_offset[col + 1];
 			int z0 = w->tile_offset[row],     z1 = w->tile_offset[row + 1];
 
-			quad(ctx, clip, 0,
+			tquad(ctx, clip,
 				x0, 0, z0,  x1, 0, z0,
 				x0, 0, z1,  x1, 0, z1,
-				58, 58, 62);
+				road_tex, 128, 128, 128);
 
 			/* Lane stripe down the middle of straight street segments. */
 			int vertical_street   = !(row & 1) && (col & 1);
@@ -92,45 +93,68 @@ void world_draw(World *w, RenderContext *ctx, MATRIX *cam_mtx, RECT *clip) {
 	}
 
 	/* Buildings. */
+	Texture *sidewalk_tex = texture_get(TEX_SIDEWALK);
+
 	for (int i = 0; i < w->building_count; i++) {
 		Building *b = &w->buildings[i];
 		int h = -b->height;
-		uint8_t r, g, bl;
+		Texture *wall_tex = texture_get(wall_textures[b->tex_id]);
+		uint8_t r;
+
+		/* Sidewalk border, sitting just above the road plane so it never
+		 * z-fights with the road tiles underneath it. */
+		int sw = 44;
+		tquad(ctx, clip,
+			b->minx - sw, -2, b->minz - sw,  b->maxx + sw, -2, b->minz - sw,
+			b->minx - sw, -2, b->minz,       b->maxx + sw, -2, b->minz,
+			sidewalk_tex, 128, 128, 128);
+		tquad(ctx, clip,
+			b->maxx + sw, -2, b->maxz + sw,  b->minx - sw, -2, b->maxz + sw,
+			b->maxx + sw, -2, b->maxz,       b->minx - sw, -2, b->maxz,
+			sidewalk_tex, 128, 128, 128);
+		tquad(ctx, clip,
+			b->minx - sw, -2, b->maxz,  b->minx - sw, -2, b->minz,
+			b->minx,      -2, b->maxz,  b->minx,      -2, b->minz,
+			sidewalk_tex, 128, 128, 128);
+		tquad(ctx, clip,
+			b->maxx,      -2, b->minz,  b->maxx,      -2, b->maxz,
+			b->maxx + sw, -2, b->minz,  b->maxx + sw, -2, b->maxz,
+			sidewalk_tex, 128, 128, 128);
 
 		/* North wall (z = minz). */
-		shade(b->r, b->g, b->b, 100, &r, &g, &bl);
-		quad(ctx, clip, 0,
+		shade_tint(b->tint, 100, &r);
+		tquad(ctx, clip,
 			b->minx, h, b->minz,  b->maxx, h, b->minz,
 			b->minx, 0, b->minz,  b->maxx, 0, b->minz,
-			r, g, bl);
+			wall_tex, r, r, r);
 
 		/* South wall (z = maxz). */
-		shade(b->r, b->g, b->b, 90, &r, &g, &bl);
-		quad(ctx, clip, 0,
+		shade_tint(b->tint, 90, &r);
+		tquad(ctx, clip,
 			b->maxx, h, b->maxz,  b->minx, h, b->maxz,
 			b->maxx, 0, b->maxz,  b->minx, 0, b->maxz,
-			r, g, bl);
+			wall_tex, r, r, r);
 
 		/* West wall (x = minx). */
-		shade(b->r, b->g, b->b, 75, &r, &g, &bl);
-		quad(ctx, clip, 0,
+		shade_tint(b->tint, 78, &r);
+		tquad(ctx, clip,
 			b->minx, h, b->maxz,  b->minx, h, b->minz,
 			b->minx, 0, b->maxz,  b->minx, 0, b->minz,
-			r, g, bl);
+			wall_tex, r, r, r);
 
 		/* East wall (x = maxx). */
-		shade(b->r, b->g, b->b, 65, &r, &g, &bl);
-		quad(ctx, clip, 0,
+		shade_tint(b->tint, 68, &r);
+		tquad(ctx, clip,
 			b->maxx, h, b->minz,  b->maxx, h, b->maxz,
 			b->maxx, 0, b->minz,  b->maxx, 0, b->maxz,
-			r, g, bl);
+			wall_tex, r, r, r);
 
 		/* Roof. */
-		shade(b->r, b->g, b->b, 55, &r, &g, &bl);
-		quad(ctx, clip, 0,
+		shade_tint(b->tint, 100, &r);
+		tquad(ctx, clip,
 			b->minx, h, b->minz,  b->maxx, h, b->minz,
 			b->minx, h, b->maxz,  b->maxx, h, b->maxz,
-			r, g, bl);
+			roof_tex, r, r, r);
 	}
 }
 

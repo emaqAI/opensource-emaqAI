@@ -111,6 +111,57 @@ void render_quad_f4(
 	render_link(ctx, p, pol);
 }
 
+void render_quad_ft4(
+	RenderContext *ctx, RECT *clip,
+	int x0, int y0, int z0, int x1, int y1, int z1,
+	int x2, int y2, int z2, int x3, int y3, int z3,
+	Texture *tex, uint8_t r, uint8_t g, uint8_t b
+) {
+	SVECTOR v0 = { x0, y0, z0, 0 };
+	SVECTOR v1 = { x1, y1, z1, 0 };
+	SVECTOR v2 = { x2, y2, z2, 0 };
+	SVECTOR v3 = { x3, y3, z3, 0 };
+	DVECTOR sxy[4];
+	int p;
+
+	gte_ldv3(&v0, &v1, &v2);
+	gte_rtpt();
+	gte_avsz3();
+	gte_stotz(&p);
+
+	if ((p <= 0) || (p >= OT_LENGTH))
+		return;
+
+	gte_stsxy0(&sxy[0]);
+	gte_stsxy1(&sxy[1]);
+	gte_stsxy2(&sxy[2]);
+
+	gte_ldv0(&v3);
+	gte_rtps();
+	gte_stsxy(&sxy[3]);
+
+	if (quad_clip(clip, &sxy[0], &sxy[1], &sxy[2], &sxy[3]))
+		return;
+
+	gte_avsz4();
+	gte_stotz(&p);
+	if ((p <= 0) || (p >= OT_LENGTH))
+		return;
+
+	POLY_FT4 *pol = (POLY_FT4 *) render_reserve(ctx, sizeof(POLY_FT4));
+	setPolyFT4(pol);
+	pol->x0 = sxy[0].vx; pol->y0 = sxy[0].vy;
+	pol->x1 = sxy[1].vx; pol->y1 = sxy[1].vy;
+	pol->x2 = sxy[2].vx; pol->y2 = sxy[2].vy;
+	pol->x3 = sxy[3].vx; pol->y3 = sxy[3].vy;
+	setRGB0(pol, r, g, b);
+	setUVWH(pol, 0, 0, 63, 63);
+	pol->tpage = tex->tpage;
+	pol->clut = tex->clut;
+
+	render_link(ctx, p, pol);
+}
+
 void render_flip(RenderContext *ctx) {
 	DrawSync(0);
 	VSync(0);
