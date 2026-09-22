@@ -14,6 +14,7 @@ void vehicle_init(Vehicle *v, int x, int z, int heading, uint8_t r, uint8_t g, u
 	v->g = g;
 	v->b = b;
 	v->tex = NULL;
+	v->shape = VSHAPE_SEDAN;
 }
 
 int vehicle_update(Vehicle *v, World *w, int accel, int steer, int handbrake) {
@@ -82,55 +83,9 @@ static void panel(
 		render_quad_f4(ctx, clip, x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3, r, g, b);
 }
 
-void vehicle_draw(Vehicle *v, RenderContext *ctx, MATRIX *cam_mtx, RECT *clip) {
-	MATRIX omtx;
-	SVECTOR rot = { 0, (short) v->heading, 0, 0 };
-	VECTOR  wpos = { vehicle_world_x(v), 0, vehicle_world_z(v) };
-
-	RotMatrix(&rot, &omtx);
-	TransMatrix(&omtx, &wpos);
-	CompMatrixLV(cam_mtx, &omtx, &omtx);
-
-	gte_SetRotMatrix(&omtx);
-	gte_SetTransMatrix(&omtx);
-
-	int hw = 90, hl = 190, roof = -130, body = -30;
-
-	/* A textured car is modulated from a neutral 128 base so the livery's
-	 * own colors show through untinted; a flat-shaded one still uses its
-	 * actual paint color as the base, same as before textures existed. */
-	uint8_t base_r = v->tex ? 128 : v->r;
-	uint8_t base_g = v->tex ? 128 : v->g;
-	uint8_t base_b = v->tex ? 128 : v->b;
-
-	/* Body: front (nose, +Z), back (tail, -Z), left, right, roof. */
-	panel(ctx, clip, v->tex,
-		-hw, roof,  hl,   hw, roof,  hl,
-		-hw, body,  hl,   hw, body,  hl,
-		base_r, base_g, base_b);
-
-	panel(ctx, clip, v->tex,
-		 hw, roof, -hl,  -hw, roof, -hl,
-		 hw, body, -hl,  -hw, body, -hl,
-		(uint8_t)(base_r / 2), 20, 20); /* dim tail end, red-ish taillights */
-
-	panel(ctx, clip, v->tex,
-		-hw, roof, -hl,  -hw, roof,  hl,
-		-hw, body, -hl,  -hw, body,  hl,
-		base_r, base_g, base_b);
-
-	panel(ctx, clip, v->tex,
-		 hw, roof,  hl,   hw, roof, -hl,
-		 hw, body,  hl,   hw, body, -hl,
-		base_r, base_g, base_b);
-
-	panel(ctx, clip, v->tex,
-		-hw, roof, -hl,   hw, roof, -hl,
-		-hw, roof,  hl,   hw, roof,  hl,
-		(uint8_t)(base_r * 2 / 3), (uint8_t)(base_g * 2 / 3), (uint8_t)(base_b * 2 / 3));
-
-	/* Lower skirt down to the ground so the car doesn't look like it's
-	 * floating when the camera looks down at it. */
+static void skirt(RenderContext *ctx, RECT *clip, int hw, int hl, int body) {
+	/* Dark shadow strip down to the ground, so the car doesn't look like
+	 * it's floating when the camera looks down at it. */
 	render_quad_f4(ctx, clip,
 		-hw, body,  hl,   hw, body,  hl,
 		-hw,    0,  hl,   hw,    0,  hl,
@@ -147,4 +102,128 @@ void vehicle_draw(Vehicle *v, RenderContext *ctx, MATRIX *cam_mtx, RECT *clip) {
 		 hw, body,  hl,   hw, body, -hl,
 		 hw,    0,  hl,   hw,    0, -hl,
 		20, 20, 20);
+}
+
+/* Plain box: the original shape, used by the sedan. */
+static void draw_box_body(
+	RenderContext *ctx, RECT *clip, Texture *tex,
+	int hw, int hl, int roof, int body,
+	uint8_t br, uint8_t bg, uint8_t bb
+) {
+	panel(ctx, clip, tex,
+		-hw, roof,  hl,   hw, roof,  hl,
+		-hw, body,  hl,   hw, body,  hl,
+		br, bg, bb);
+
+	panel(ctx, clip, tex,
+		 hw, roof, -hl,  -hw, roof, -hl,
+		 hw, body, -hl,  -hw, body, -hl,
+		(uint8_t)(br / 2), 20, 20); /* dim tail end, red-ish taillights */
+
+	panel(ctx, clip, tex,
+		-hw, roof, -hl,  -hw, roof,  hl,
+		-hw, body, -hl,  -hw, body,  hl,
+		br, bg, bb);
+
+	panel(ctx, clip, tex,
+		 hw, roof,  hl,   hw, roof, -hl,
+		 hw, body,  hl,   hw, body, -hl,
+		br, bg, bb);
+
+	panel(ctx, clip, tex,
+		-hw, roof, -hl,   hw, roof, -hl,
+		-hw, roof,  hl,   hw, roof,  hl,
+		(uint8_t)(br * 2 / 3), (uint8_t)(bg * 2 / 3), (uint8_t)(bb * 2 / 3));
+
+	skirt(ctx, clip, hw, hl, body);
+}
+
+/* Low, long cabin with a fastback taper: the roofline slopes down toward
+ * the tail instead of staying flat, ending low with a small spoiler right
+ * above it. The camera is always behind the car, so this (not a front
+ * wedge, which would never be seen) is where a "sports car" silhouette
+ * actually needs to read. taper_z is where the slope begins (how far
+ * forward of the tail tip the flat roof ends). */
+static void draw_sports_body(
+	RenderContext *ctx, RECT *clip, Texture *tex,
+	int hw, int hl, int roof, int body, int taper_z,
+	uint8_t br, uint8_t bg, uint8_t bb
+) {
+	/* Nose: flat, like the sedan's front wall. */
+	panel(ctx, clip, tex,
+		-hw, roof,  hl,   hw, roof,  hl,
+		-hw, body,  hl,   hw, body,  hl,
+		br, bg, bb);
+
+	/* Fastback: slopes from the flat roof's back edge (taper_z) down to a
+	 * low tail lip. Replaces the sedan's flat tail wall. */
+	panel(ctx, clip, tex,
+		 hw, roof, taper_z,  -hw, roof, taper_z,
+		 hw, body,     -hl,  -hw, body,     -hl,
+		(uint8_t)(br / 2), 20, 20); /* dim, red-ish taillights */
+
+	/* Sides: trapezoidal, top edge pulled forward to taper_z, bottom edge
+	 * running the full length to match the tail taper underneath it. */
+	panel(ctx, clip, tex,
+		-hw, roof,      hl,  -hw, roof, taper_z,
+		-hw, body,      hl,  -hw, body,     -hl,
+		br, bg, bb);
+
+	panel(ctx, clip, tex,
+		 hw, roof, taper_z,   hw, roof,      hl,
+		 hw, body,     -hl,   hw, body,      hl,
+		br, bg, bb);
+
+	/* Roof: only spans from the nose back to where the taper begins. */
+	panel(ctx, clip, tex,
+		-hw, roof,      hl,   hw, roof,      hl,
+		-hw, roof, taper_z,   hw, roof, taper_z,
+		(uint8_t)(br * 2 / 3), (uint8_t)(bg * 2 / 3), (uint8_t)(bb * 2 / 3));
+
+	/* Small rear spoiler, floating just above the low tail lip. */
+	int wing_y = body - 16; /* a bit higher (more negative) than the tail */
+	int wing_hw = (hw * 3) / 4;
+	render_quad_f4(ctx, clip,
+		-wing_hw, wing_y, -hl,       wing_hw, wing_y, -hl,
+		-wing_hw, wing_y, -hl + 18,  wing_hw, wing_y, -hl + 18,
+		30, 30, 34);
+
+	skirt(ctx, clip, hw, hl, body);
+}
+
+void vehicle_draw(Vehicle *v, RenderContext *ctx, MATRIX *cam_mtx, RECT *clip) {
+	MATRIX omtx;
+	SVECTOR rot = { 0, (short) v->heading, 0, 0 };
+	VECTOR  wpos = { vehicle_world_x(v), 0, vehicle_world_z(v) };
+
+	RotMatrix(&rot, &omtx);
+	TransMatrix(&omtx, &wpos);
+	CompMatrixLV(cam_mtx, &omtx, &omtx);
+
+	gte_SetRotMatrix(&omtx);
+	gte_SetTransMatrix(&omtx);
+
+	/* A textured car is modulated from a neutral 128 base so the livery's
+	 * own colors show through untinted; a flat-shaded one still uses its
+	 * actual paint color as the base, same as before textures existed. */
+	uint8_t base_r = v->tex ? 128 : v->r;
+	uint8_t base_g = v->tex ? 128 : v->g;
+	uint8_t base_b = v->tex ? 128 : v->b;
+
+	switch (v->shape) {
+		case VSHAPE_SUV:
+			/* Taller, boxier cabin riding higher off the ground. */
+			draw_box_body(ctx, clip, v->tex, 98, 175, -185, -55, base_r, base_g, base_b);
+			break;
+
+		case VSHAPE_SPORTS:
+			/* Low, long cabin with a fastback taper toward the tail. */
+			draw_sports_body(ctx, clip, v->tex, 82, 195, -85, -25, -125, base_r, base_g, base_b);
+			break;
+
+		case VSHAPE_SEDAN:
+		default:
+			draw_box_body(ctx, clip, v->tex, 90, 190, -130, -30, base_r, base_g, base_b);
+			break;
+	}
 }

@@ -123,6 +123,12 @@ quick iteration.
 - **Vehicle physics** (`src/vehicle.c`): fixed-point accel/brake/steer/
   handbrake model shared by the player, traffic and police (same struct,
   different "driver").
+- **Vehicle shapes** (`src/vehicle.c`): 3 body silhouettes, not just 3
+  paint jobs on one box — `VSHAPE_SEDAN` (the original box), `VSHAPE_SUV`
+  (taller, boxier, rides higher), `VSHAPE_SPORTS` (low cabin, fastback
+  taper toward the tail, small spoiler). The fastback slopes toward the
+  *tail*, not the nose: the camera always looks at the back of the car, so
+  a sloped hood would never actually be seen.
 - **Camera** (`src/camera.c`): a smoothed third-person chase camera.
 - **Traffic AI** (`src/traffic.c`): cars looping fixed street routes,
   wandering-then-scattering pedestrians, both steered without a lookup

@@ -28,9 +28,14 @@ static void add_loop(Traffic *t, World *w, int r0, int c0, int r1, int c1, int s
 	car->wp_count = 4;
 	car->wp_index = 1;
 
+	static const VehicleShape traffic_shapes[TRAFFIC_COLOR_COUNT] = {
+		VSHAPE_SEDAN, VSHAPE_SUV, VSHAPE_SPORTS, VSHAPE_SEDAN,
+	};
+
 	int color_id = t->car_count % TRAFFIC_COLOR_COUNT;
 	const uint8_t *col = traffic_colors[color_id];
 	vehicle_init(&car->veh, car->wp_x[0], car->wp_z[0], 0, col[0], col[1], col[2]);
+	car->veh.shape = traffic_shapes[color_id];
 	if (color_id == 0) /* taxi yellow -> matches the taxi livery texture */
 		car->veh.tex = texture_get(TEX_CAR_TAXI);
 	(void) seed_offset;

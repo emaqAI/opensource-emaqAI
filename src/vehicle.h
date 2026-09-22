@@ -4,6 +4,12 @@
 #include "render.h"
 #include "world.h"
 
+typedef enum {
+	VSHAPE_SEDAN = 0, /* Plain box, the original shape.                    */
+	VSHAPE_SUV,       /* Taller, boxier cabin + taller skirt (ride height).*/
+	VSHAPE_SPORTS     /* Low cabin, sloped wedge hood, small rear spoiler. */
+} VehicleShape;
+
 /* A car's world position is stored pre-scaled by ONE (4096) for smooth
  * sub-unit physics; use vehicle_world_x()/vehicle_world_z() to get plain
  * world-space coordinates for rendering/collision/gameplay logic. */
@@ -14,7 +20,8 @@ typedef struct {
 	int     radius;    /* Collision radius, raw world units.               */
 	int     crash_timer;
 	uint8_t r, g, b;
-	Texture *tex; /* NULL = flat-shaded fallback using r,g,b. */
+	Texture      *tex;   /* NULL = flat-shaded fallback using r,g,b. */
+	VehicleShape shape;  /* Body silhouette; defaults to VSHAPE_SEDAN.  */
 } Vehicle;
 
 #define VEH_MAX_SPEED     (9 * 4096)
