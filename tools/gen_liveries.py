@@ -35,11 +35,26 @@ def variant_b_taxi():
 
 
 def variant_c_police():
-    """Black & white police livery with a dark door panel band."""
-    img = base((245, 245, 242))
+    """Silver body, dark navy-blue band, and a light green "Battenburg"
+    style reflective checker stripe (the classic PL police look)."""
+    img = base((196, 200, 206))  # silver
     d = ImageDraw.Draw(img)
-    d.rectangle([0, S // 2 - 14, S, S // 2 + 14], fill=(18, 18, 22))
-    d.rectangle([0, S // 2 - 3, S, S // 2 + 3], fill=(40, 70, 200))
+
+    navy = (18, 40, 110)
+    green = (150, 255, 90)  # light, fluorescent-looking green
+
+    # Navy band across the doors.
+    d.rectangle([0, S // 2 - 15, S, S // 2 + 15], fill=navy)
+
+    # Reflective green checker stripe through the middle of the band.
+    cell = 6
+    y0, y1 = S // 2 - 5, S // 2 + 4
+    for x in range(0, S, cell):
+        if (x // cell) % 2 == 0:
+            d.rectangle([x, y0, x + cell - 1, y1], fill=green)
+        else:
+            d.rectangle([x, y0, x + cell - 1, y1], fill=navy)
+
     return img
 
 

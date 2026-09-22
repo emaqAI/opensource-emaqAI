@@ -115,10 +115,14 @@ static void draw_box_body(
 		-hw, body,  hl,   hw, body,  hl,
 		br, bg, bb);
 
+	/* Tail: this is the face the chase camera is always looking at, so it
+	 * must show the actual livery, not a tint - a textured car's tail uses
+	 * the same neutral color as every other panel; only a flat-shaded car
+	 * (no livery to protect) gets the dim red "taillight" paint. */
 	panel(ctx, clip, tex,
 		 hw, roof, -hl,  -hw, roof, -hl,
 		 hw, body, -hl,  -hw, body, -hl,
-		(uint8_t)(br / 2), 20, 20); /* dim tail end, red-ish taillights */
+		tex ? br : (uint8_t)(br / 2), tex ? bg : 20, tex ? bb : 20);
 
 	panel(ctx, clip, tex,
 		-hw, roof, -hl,  -hw, roof,  hl,
@@ -134,6 +138,17 @@ static void draw_box_body(
 		-hw, roof, -hl,   hw, roof, -hl,
 		-hw, roof,  hl,   hw, roof,  hl,
 		(uint8_t)(br * 2 / 3), (uint8_t)(bg * 2 / 3), (uint8_t)(bb * 2 / 3));
+
+	/* Small real taillight strips at the bottom corners of the tail,
+	 * drawn as flat untextured quads so they never depend on the livery. */
+	render_quad_f4(ctx, clip,
+		 hw, body + (roof - body) / 6, -hl,   hw - (hw / 3), body + (roof - body) / 6, -hl,
+		 hw, body,                     -hl,   hw - (hw / 3), body,                     -hl,
+		180, 20, 20);
+	render_quad_f4(ctx, clip,
+		-hw + (hw / 3), body + (roof - body) / 6, -hl,  -hw, body + (roof - body) / 6, -hl,
+		-hw + (hw / 3), body,                     -hl,  -hw, body,                     -hl,
+		180, 20, 20);
 
 	skirt(ctx, clip, hw, hl, body);
 }
@@ -156,11 +171,14 @@ static void draw_sports_body(
 		br, bg, bb);
 
 	/* Fastback: slopes from the flat roof's back edge (taper_z) down to a
-	 * low tail lip. Replaces the sedan's flat tail wall. */
+	 * low tail lip. Replaces the sedan's flat tail wall. This is the face
+	 * the chase camera is always looking at, so a textured car shows the
+	 * actual livery here (neutral tint); only a flat-shaded car gets the
+	 * dim red "taillight" paint. */
 	panel(ctx, clip, tex,
 		 hw, roof, taper_z,  -hw, roof, taper_z,
 		 hw, body,     -hl,  -hw, body,     -hl,
-		(uint8_t)(br / 2), 20, 20); /* dim, red-ish taillights */
+		tex ? br : (uint8_t)(br / 2), tex ? bg : 20, tex ? bb : 20);
 
 	/* Sides: trapezoidal, top edge pulled forward to taper_z, bottom edge
 	 * running the full length to match the tail taper underneath it. */
@@ -187,6 +205,16 @@ static void draw_sports_body(
 		-wing_hw, wing_y, -hl,       wing_hw, wing_y, -hl,
 		-wing_hw, wing_y, -hl + 18,  wing_hw, wing_y, -hl + 18,
 		30, 30, 34);
+
+	/* Small real taillight strips at the bottom corners of the tail lip. */
+	render_quad_f4(ctx, clip,
+		 hw, body + 16, -hl,   hw - (hw / 3), body + 16, -hl,
+		 hw, body,      -hl,   hw - (hw / 3), body,      -hl,
+		180, 20, 20);
+	render_quad_f4(ctx, clip,
+		-hw + (hw / 3), body + 16, -hl,  -hw, body + 16, -hl,
+		-hw + (hw / 3), body,      -hl,  -hw, body,      -hl,
+		180, 20, 20);
 
 	skirt(ctx, clip, hw, hl, body);
 }
