@@ -149,6 +149,13 @@ quick iteration.
   delivery) each with a briefing/result text screen -> ending -> free roam.
 - **HUD** (`src/hud.c`): speed, wanted stars, live objective distance /
   mission timer.
+- **Audio** (`src/audio.c`, `src/sounds/*.vag`): real SPU sound - a looping
+  engine hum whose pitch/volume track the player's speed live, a looping
+  police/emergency siren that starts and stops with the wanted level, and a
+  one-shot crash sound on any collision (buildings, traffic, police). The 3
+  clips are synthesized tones/noise (no source recordings or sample packs
+  to pull from) encoded to real SPU-ADPCM `.vag` files - see "Regenerating
+  sounds" below.
 
 ## Known simplifications (by design, not oversights)
 
@@ -200,6 +207,25 @@ python3 tools/make_game_textures.py                          # crops/quantizes -
   geometric shapes, not a source photo) then `python3 tools/make_car_textures.py`.
 - `tools/generate_cover.py` (below) is a separate, OpenAI-based path if you'd
   rather generate art through DALL-E instead of the free/procedural route.
+
+## Regenerating sounds
+
+The 3 in-game sounds (`src/sounds/*.vag`) are synthesized and SPU-ADPCM
+encoded by a single tool, no source audio needed:
+
+```sh
+python3 tools/gen_sounds.py src/sounds
+```
+
+`tools/gen_sounds.py` synthesizes the engine hum (a buzzy low tone loop),
+the siren (an alternating two-tone wail loop) and the crash thud (decaying
+noise burst) as raw waveforms, then encodes each to real PS1 SPU-ADPCM
+using an ADPCM predictor-0 encoder (a plain per-28-sample-block shift/
+quantize to 4 bits — a real, spec-compliant SPU-ADPCM mode, just the
+simplest one to get right without porting a full predictor-search
+encoder) and wraps it in a standard `.vag` header, the same format used by
+PSn00bSDK's own `vagsample` example. `src/audio.c` uploads all 3 to SPU
+RAM at boot and plays them back with `psxspu.h`.
 
 ## Cover art
 

@@ -24,6 +24,7 @@ psn00bsdk_add_executable(chromecity GPREL
 	src/hud.c
 	src/input.c
 	src/texture.c
+	src/audio.c
 )
 
 target_include_directories(chromecity PRIVATE src)
@@ -39,6 +40,10 @@ psn00bsdk_target_incbin(chromecity PRIVATE tim_car_taxi      src/textures/tex_ca
 psn00bsdk_target_incbin(chromecity PRIVATE tim_car_police    src/textures/tex_car_police.tim)
 psn00bsdk_target_incbin(chromecity PRIVATE tim_car_fire      src/textures/tex_car_fire.tim)
 psn00bsdk_target_incbin(chromecity PRIVATE tim_car_ambulance src/textures/tex_car_ambulance.tim)
+
+psn00bsdk_target_incbin(chromecity PRIVATE snd_engine src/sounds/engine.vag)
+psn00bsdk_target_incbin(chromecity PRIVATE snd_siren  src/sounds/siren.vag)
+psn00bsdk_target_incbin(chromecity PRIVATE snd_crash  src/sounds/crash.vag)
 
 psn00bsdk_add_cd_image(
 	iso        # Target name

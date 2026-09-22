@@ -13,6 +13,7 @@
 #include "input.h"
 #include "fixed.h"
 #include "texture.h"
+#include "audio.h"
 
 static RenderContext ctx;
 static World         world;
@@ -84,22 +85,28 @@ static void update_gameplay(void) {
 	int accel, steer, handbrake;
 	read_player_controls(&accel, &steer, &handbrake);
 
-	vehicle_update(&player, &world, accel, steer, handbrake);
+	if (vehicle_update(&player, &world, accel, steer, handbrake))
+		audio_play_crash();
 	traffic_update(&traffic, &world);
 	police_update(&police, &world, &player);
 
 	for (int i = 0; i < traffic.car_count; i++) {
-		if (bump(&player, &traffic.cars[i].veh))
+		if (bump(&player, &traffic.cars[i].veh)) {
 			police_add_heat(&police, &world, 1);
+			audio_play_crash();
+		}
 	}
 	for (int i = 0; i < MAX_POLICE; i++) {
-		if (police.cars[i].active)
-			bump(&player, &police.cars[i].veh);
+		if (police.cars[i].active && bump(&player, &police.cars[i].veh))
+			audio_play_crash();
 	}
 	if (traffic_spook_pedestrian(&traffic, vehicle_world_x(&player), vehicle_world_z(&player), player.radius + 40))
 		police_add_heat(&police, &world, 1);
 
 	mission_update(&mission, &input, &player, &world, &police);
+
+	audio_engine_update(player.speed);
+	audio_set_siren(police.wanted > 0);
 }
 
 int main(int argc, const char **argv) {
@@ -108,6 +115,7 @@ int main(int argc, const char **argv) {
 
 	render_init(&ctx, 20, 24, 30);
 	textures_load();
+	audio_init();
 	FntLoad(960, 0);
 	FntOpen(8, 16, 304, 216, 0, 512);
 
