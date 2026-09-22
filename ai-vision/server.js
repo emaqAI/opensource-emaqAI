@@ -46,6 +46,11 @@ const SYSTEM =
 
 // Resolves credentials from ANTHROPIC_API_KEY (or an `ant auth login` profile).
 const client = new Anthropic();
+const hasEnvCredentials = Boolean(
+  process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN || process.env.ANTHROPIC_PROFILE,
+);
+const NO_CREDENTIALS =
+  "The server has no valid Anthropic credentials. Set ANTHROPIC_API_KEY and restart.";
 
 function parseDataUrl(dataUrl) {
   const match = /^data:([a-z/+.-]+);base64,([A-Za-z0-9+/=]+)$/i.exec(dataUrl ?? "");
@@ -95,13 +100,13 @@ async function readJson(req) {
 }
 
 function describeApiError(err) {
-  if (err instanceof Anthropic.AuthenticationError) {
-    return "The server has no valid Anthropic credentials. Set ANTHROPIC_API_KEY and restart.";
-  }
+  if (err instanceof Anthropic.AuthenticationError) return NO_CREDENTIALS;
   if (err instanceof Anthropic.RateLimitError) return "Rate limited by the API — try again shortly.";
   if (err instanceof Anthropic.BadRequestError) return `The API rejected the request: ${err.message}`;
   if (err instanceof Anthropic.APIConnectionError) return "Could not reach the Claude API.";
   if (err instanceof Anthropic.APIError) return `Claude API error ${err.status}: ${err.message}`;
+  // With no key or profile, the SDK fails before sending anything.
+  if (!hasEnvCredentials && err instanceof Anthropic.AnthropicError) return NO_CREDENTIALS;
   return err.message || "Unexpected error.";
 }
 
@@ -186,4 +191,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`AI Vision running at http://localhost:${PORT} (model: ${MODEL})`);
+  if (!hasEnvCredentials) {
+    console.warn("Warning: ANTHROPIC_API_KEY is not set; analysis requests will fail.");
+  }
 });

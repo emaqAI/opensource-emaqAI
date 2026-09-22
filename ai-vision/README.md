@@ -36,7 +36,7 @@ browser ──(image as base64 + mode)──▶ server.js ──▶ Claude Messa
         ◀──── streamed JSON lines ────           ◀── streamed answer
 ```
 
-- **`public/index.html`** is the whole front end. It has no build step and no libraries. It checks the image type and size, sends the image to the server, and renders the streamed Markdown answer. It escapes all HTML first, so the answer cannot run code on the page.
+- **`public/index.html`** is the whole front end. It has no build step and no libraries. It checks the image type and shrinks large photos so the long edge is at most 1568 px, which is the size Claude would scale them to anyway. Then it sends the image to the server and renders the streamed Markdown answer. It escapes all HTML first, so the answer cannot run code on the page.
 - **`server.js`** is a plain `node:http` server. It validates the upload (JPEG, PNG, GIF or WebP, up to 5 MB). It sends the image and a prompt for the chosen mode to Claude, and relays the answer back as newline-delimited JSON as it streams in.
   - It uses adaptive thinking, so Claude decides how much to think about each image.
   - Server-side fallbacks are on (`fallbacks: "default"`). If a safety classifier declines a request, the API retries it on Anthropic's recommended fallback model instead of failing.

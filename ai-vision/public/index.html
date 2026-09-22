@@ -75,7 +75,7 @@
   <div class="grid">
     <section class="panel">
       <div id="drop">
-        <span id="drop-hint">Drop an image here, or click to choose<br><small>JPEG, PNG, GIF or WebP, up to 5 MB</small></span>
+        <span id="drop-hint">Drop an image here, or click to choose<br><small>JPEG, PNG, GIF or WebP — large photos are resized automatically</small></span>
         <img id="preview" class="hidden" alt="Selected image">
         <input id="file" type="file" accept="image/jpeg,image/png,image/gif,image/webp" aria-label="Choose an image">
       </div>
@@ -115,21 +115,53 @@
     output.append(p);
   }
 
-  function loadFile(f) {
+  // Claude downsizes anything with a long edge over ~1568px, so shrinking larger
+  // photos here loses nothing and keeps phone pictures under the 5 MB limit.
+  const MAX_EDGE = 1568;
+
+  function readAsDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function prepareImage(f) {
+    const bitmap = await createImageBitmap(f);
+    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+    if (scale === 1 && f.size <= MAX_BYTES) {
+      bitmap.close();
+      return { dataUrl: await readAsDataUrl(f), note: "" };
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff"; // JPEG has no transparency
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const note = `Resized from ${bitmap.width}×${bitmap.height} to ${canvas.width}×${canvas.height}.`;
+    bitmap.close();
+    return { dataUrl: canvas.toDataURL("image/jpeg", 0.9), note };
+  }
+
+  async function loadFile(f) {
     if (!f) return;
     if (!TYPES.includes(f.type)) return showMessage("Please choose a JPEG, PNG, GIF or WebP image.", "error");
-    if (f.size > MAX_BYTES) return showMessage("That image is larger than 5 MB.", "error");
-    const reader = new FileReader();
-    reader.onload = () => {
-      imageDataUrl = reader.result;
+    try {
+      const { dataUrl, note } = await prepareImage(f);
+      imageDataUrl = dataUrl;
       preview.src = imageDataUrl;
       preview.classList.remove("hidden");
       hint.classList.add("hidden");
       go.disabled = false;
       showMessage("Ready. Pick a mode and press Analyze.", "placeholder");
-      meta.textContent = "";
-    };
-    reader.readAsDataURL(f);
+      meta.textContent = note;
+    } catch {
+      showMessage("Could not read that image.", "error");
+    }
   }
 
   file.addEventListener("change", () => loadFile(file.files[0]));
