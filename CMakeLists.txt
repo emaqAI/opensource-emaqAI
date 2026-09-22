@@ -34,6 +34,9 @@ psn00bsdk_target_incbin(chromecity PRIVATE tim_wall_concrete src/textures/tex_wa
 psn00bsdk_target_incbin(chromecity PRIVATE tim_wall_brick    src/textures/tex_wall_brick.tim)
 psn00bsdk_target_incbin(chromecity PRIVATE tim_wall_glass    src/textures/tex_wall_glass.tim)
 psn00bsdk_target_incbin(chromecity PRIVATE tim_roof          src/textures/tex_roof.tim)
+psn00bsdk_target_incbin(chromecity PRIVATE tim_car_stripe    src/textures/tex_car_stripe.tim)
+psn00bsdk_target_incbin(chromecity PRIVATE tim_car_taxi      src/textures/tex_car_taxi.tim)
+psn00bsdk_target_incbin(chromecity PRIVATE tim_car_police    src/textures/tex_car_police.tim)
 
 psn00bsdk_add_cd_image(
 	iso        # Target name

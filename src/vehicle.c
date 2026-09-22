@@ -13,6 +13,7 @@ void vehicle_init(Vehicle *v, int x, int z, int heading, uint8_t r, uint8_t g, u
 	v->r = r;
 	v->g = g;
 	v->b = b;
+	v->tex = NULL;
 }
 
 int vehicle_update(Vehicle *v, World *w, int accel, int steer, int handbrake) {
@@ -69,6 +70,18 @@ int vehicle_update(Vehicle *v, World *w, int accel, int steer, int handbrake) {
 	return hit;
 }
 
+static void panel(
+	RenderContext *ctx, RECT *clip, Texture *tex,
+	int x0, int y0, int z0, int x1, int y1, int z1,
+	int x2, int y2, int z2, int x3, int y3, int z3,
+	uint8_t r, uint8_t g, uint8_t b
+) {
+	if (tex)
+		render_quad_ft4(ctx, clip, x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3, tex, r, g, b);
+	else
+		render_quad_f4(ctx, clip, x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3, r, g, b);
+}
+
 void vehicle_draw(Vehicle *v, RenderContext *ctx, MATRIX *cam_mtx, RECT *clip) {
 	MATRIX omtx;
 	SVECTOR rot = { 0, (short) v->heading, 0, 0 };
@@ -82,33 +95,39 @@ void vehicle_draw(Vehicle *v, RenderContext *ctx, MATRIX *cam_mtx, RECT *clip) {
 	gte_SetTransMatrix(&omtx);
 
 	int hw = 90, hl = 190, roof = -130, body = -30;
-	uint8_t r = v->r, g = v->g, b = v->b;
+
+	/* A textured car is modulated from a neutral 128 base so the livery's
+	 * own colors show through untinted; a flat-shaded one still uses its
+	 * actual paint color as the base, same as before textures existed. */
+	uint8_t base_r = v->tex ? 128 : v->r;
+	uint8_t base_g = v->tex ? 128 : v->g;
+	uint8_t base_b = v->tex ? 128 : v->b;
 
 	/* Body: front (nose, +Z), back (tail, -Z), left, right, roof. */
-	render_quad_f4(ctx, clip,
+	panel(ctx, clip, v->tex,
 		-hw, roof,  hl,   hw, roof,  hl,
 		-hw, body,  hl,   hw, body,  hl,
-		r, g, b);
+		base_r, base_g, base_b);
 
-	render_quad_f4(ctx, clip,
+	panel(ctx, clip, v->tex,
 		 hw, roof, -hl,  -hw, roof, -hl,
 		 hw, body, -hl,  -hw, body, -hl,
-		(uint8_t)(r / 2), 20, 20); /* dim tail end, red-ish taillights */
+		(uint8_t)(base_r / 2), 20, 20); /* dim tail end, red-ish taillights */
 
-	render_quad_f4(ctx, clip,
+	panel(ctx, clip, v->tex,
 		-hw, roof, -hl,  -hw, roof,  hl,
 		-hw, body, -hl,  -hw, body,  hl,
-		r, g, b);
+		base_r, base_g, base_b);
 
-	render_quad_f4(ctx, clip,
+	panel(ctx, clip, v->tex,
 		 hw, roof,  hl,   hw, roof, -hl,
 		 hw, body,  hl,   hw, body, -hl,
-		r, g, b);
+		base_r, base_g, base_b);
 
-	render_quad_f4(ctx, clip,
+	panel(ctx, clip, v->tex,
 		-hw, roof, -hl,   hw, roof, -hl,
 		-hw, roof,  hl,   hw, roof,  hl,
-		(uint8_t)(r * 2 / 3), (uint8_t)(g * 2 / 3), (uint8_t)(b * 2 / 3));
+		(uint8_t)(base_r * 2 / 3), (uint8_t)(base_g * 2 / 3), (uint8_t)(base_b * 2 / 3));
 
 	/* Lower skirt down to the ground so the car doesn't look like it's
 	 * floating when the camera looks down at it. */

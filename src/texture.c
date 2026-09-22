@@ -7,6 +7,9 @@ extern const uint32_t tim_wall_concrete[];
 extern const uint32_t tim_wall_brick[];
 extern const uint32_t tim_wall_glass[];
 extern const uint32_t tim_roof[];
+extern const uint32_t tim_car_stripe[];
+extern const uint32_t tim_car_taxi[];
+extern const uint32_t tim_car_police[];
 
 static Texture textures[TEX_COUNT];
 
@@ -31,6 +34,9 @@ void textures_load(void) {
 	load_one(TEX_WALL_BRICK, tim_wall_brick);
 	load_one(TEX_WALL_GLASS, tim_wall_glass);
 	load_one(TEX_ROOF, tim_roof);
+	load_one(TEX_CAR_STRIPE, tim_car_stripe);
+	load_one(TEX_CAR_TAXI, tim_car_taxi);
+	load_one(TEX_CAR_POLICE, tim_car_police);
 }
 
 Texture *texture_get(TextureId id) {

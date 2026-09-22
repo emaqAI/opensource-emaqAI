@@ -110,11 +110,16 @@ quick iteration.
   grid (5x5 blocks) with varied building heights, textured facades (concrete/
   brick/glass, randomly assigned per building) and painted lane lines, plus
   AABB collision for buildings.
-- **Textures** (`src/texture.c`, `src/textures/*.tim`): 6 real PS1 textures
-  (road, sidewalk, 3 building facades, roof) — 64x64, 8bpp CLUT — drawn with
-  `POLY_FT4`. Road/sidewalk are procedurally generated (so they tile
-  seamlessly); the building/roof textures were generated from text prompts
-  via a free image API. See "Regenerating textures" below.
+- **Textures** (`src/texture.c`, `src/textures/*.tim`): 9 real PS1 textures
+  drawn with `POLY_FT4` — 6 environment ones (road, sidewalk, 3 building
+  facades, roof; 64x64 8bpp CLUT) plus 3 vehicle liveries (player stripe,
+  taxi, police; 64x64 4bpp CLUT, since flat 4-5 color patterns don't need
+  256 colors). Road/sidewalk are procedural (so they tile seamlessly);
+  the rest came from text prompts via a free image API, except the
+  vehicle liveries, which turned out to need to be procedural too — an
+  AI photo texture downscales to mush at 64x64 when it's a geometric
+  pattern (stripe, checker) rather than an irregular material. See
+  "Regenerating textures" below.
 - **Vehicle physics** (`src/vehicle.c`): fixed-point accel/brake/steer/
   handbrake model shared by the player, traffic and police (same struct,
   different "driver").
@@ -133,9 +138,11 @@ quick iteration.
 
 ## Known simplifications (by design, not oversights)
 
-- Buildings, road and sidewalks are textured; the player/traffic/police
-  cars stay flat-shaded boxes — texturing tiny car panels has much less
-  visual payoff than the environment did, so that's left as a follow-up.
+- Only 3 vehicles have a real livery texture: the player's car (white
+  racing stripe), the taxi-yellow traffic car, and police cars. The
+  other 3 traffic colors stay flat-shaded — same `Vehicle.tex` mechanism,
+  just no VRAM budget left for more without repacking the existing
+  texture pages tighter.
 - No true drift/slip physics — the handbrake tightens the turn radius and
   brakes hard, but the car's velocity always points along its heading.
 - No memory card save. PSn00bSDK 0.24 doesn't ship a high-level card API
@@ -170,6 +177,12 @@ python3 tools/make_game_textures.py                          # crops/quantizes -
   native 8bpp-CLUT texture format) and picks its VRAM placement — see the
   comment at the top of that file for the layout and why it's safe
   relative to the framebuffers and debug font.
+- `tools/make_car_textures.py` does the same for the 3 vehicle liveries in
+  `tools/texture_src/{A_stripe,B_taxi,C_police,D_muscle}.png` (4bpp instead
+  of 8bpp; `D_muscle` is generated but not currently used by any vehicle —
+  a free livery slot for a future car). Regenerate liveries with
+  `python3 tools/gen_liveries.py` (in `tools/`, uses `PIL.ImageDraw` — flat
+  geometric shapes, not a source photo) then `python3 tools/make_car_textures.py`.
 - `tools/generate_cover.py` (below) is a separate, OpenAI-based path if you'd
   rather generate art through DALL-E instead of the free/procedural route.
 

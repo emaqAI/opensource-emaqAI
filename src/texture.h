@@ -9,6 +9,9 @@ typedef enum {
 	TEX_WALL_BRICK,
 	TEX_WALL_GLASS,
 	TEX_ROOF,
+	TEX_CAR_STRIPE,
+	TEX_CAR_TAXI,
+	TEX_CAR_POLICE,
 	TEX_COUNT
 } TextureId;
 

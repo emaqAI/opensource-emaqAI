@@ -7,6 +7,7 @@ static int precinct_x, precinct_z;
 static void spawn_car(PoliceState *p, World *w, int slot) {
 	PoliceCar *pc = &p->cars[slot];
 	vehicle_init(&pc->veh, precinct_x, precinct_z, 0, 20, 20, 210);
+	pc->veh.tex = texture_get(TEX_CAR_POLICE);
 	pc->active = 1;
 	(void) w;
 }

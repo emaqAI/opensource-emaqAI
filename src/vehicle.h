@@ -14,6 +14,7 @@ typedef struct {
 	int     radius;    /* Collision radius, raw world units.               */
 	int     crash_timer;
 	uint8_t r, g, b;
+	Texture *tex; /* NULL = flat-shaded fallback using r,g,b. */
 } Vehicle;
 
 #define VEH_MAX_SPEED     (9 * 4096)

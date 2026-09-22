@@ -116,6 +116,7 @@ int main(int argc, const char **argv) {
 	world_tile_center(&world, 4, 4, &spawn_x, &spawn_z);
 	vehicle_init(&player, spawn_x, spawn_z, 0, 220, 50, 50);
 	player.radius = VEH_RADIUS;
+	player.tex = texture_get(TEX_CAR_STRIPE);
 
 	camera_init(&camera, &player);
 	traffic_init(&traffic, &world);
