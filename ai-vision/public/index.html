@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Vision</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1c1a; --muted: #6b6860;
+    --line: #e2dfd6; --accent: #c2562f; --accent-ink: #ffffff; --error: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161513; --panel: #201f1c; --ink: #ecebe6; --muted: #a09d94;
+      --line: #36342f; --accent: #e07a52; --accent-ink: #161513; --error: #f2837a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; }
+  header h1 { margin: 0; font-size: 1.75rem; letter-spacing: -0.01em; }
+  header p { margin: 4px 0 24px; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+  }
+  #drop {
+    position: relative; display: grid; place-items: center; min-height: 260px;
+    border: 2px dashed var(--line); border-radius: 10px; cursor: pointer;
+    text-align: center; color: var(--muted); overflow: hidden;
+  }
+  #drop.over { border-color: var(--accent); }
+  #drop img { max-width: 100%; max-height: 420px; display: block; }
+  #drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .modes { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 12px; }
+  .modes label {
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer;
+    font-size: 0.9rem;
+  }
+  .modes input { position: absolute; opacity: 0; }
+  .modes input:checked + span { color: var(--accent); font-weight: 600; }
+  .modes label:has(input:checked) { border-color: var(--accent); }
+  .modes label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  textarea {
+    width: 100%; min-height: 70px; resize: vertical; padding: 10px; border-radius: 8px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit;
+  }
+  button {
+    margin-top: 12px; width: 100%; padding: 12px; border: 0; border-radius: 8px;
+    background: var(--accent); color: var(--accent-ink); font: inherit; font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #output { min-height: 260px; overflow-wrap: anywhere; }
+  #output .placeholder { color: var(--muted); }
+  #output .error { color: var(--error); }
+  #output table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  #output th, #output td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; }
+  #output pre { white-space: pre-wrap; background: var(--bg); padding: 10px; border-radius: 8px; }
+  #meta { margin-top: 12px; color: var(--muted); font-size: 0.85rem; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>AI Vision</h1>
+    <p>Drop in an image and let Claude describe it, list what's in it, read its text, or answer a question.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <div id="drop">
+        <span id="drop-hint">Drop an image here, or click to choose<br><small>JPEG, PNG, GIF or WebP, up to 5 MB</small></span>
+        <img id="preview" class="hidden" alt="Selected image">
+        <input id="file" type="file" accept="image/jpeg,image/png,image/gif,image/webp" aria-label="Choose an image">
+      </div>
+
+      <div class="modes" role="radiogroup" aria-label="Analysis mode">
+        <label><input type="radio" name="mode" value="describe" checked><span>Describe</span></label>
+        <label><input type="radio" name="mode" value="objects"><span>Find objects</span></label>
+        <label><input type="radio" name="mode" value="text"><span>Read text</span></label>
+        <label><input type="radio" name="mode" value="alt"><span>Alt text</span></label>
+        <label><input type="radio" name="mode" value="ask"><span>Ask a question</span></label>
+      </div>
+      <textarea id="question" class="hidden" placeholder="e.g. How many people are wearing hats?"></textarea>
+      <button id="go" disabled>Analyze</button>
+    </section>
+
+    <section class="panel">
+      <div id="output"><p class="placeholder">Results will appear here.</p></div>
+      <div id="meta"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+  const MAX_BYTES = 5 * 1024 * 1024;
+  const TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+  const $ = (id) => document.getElementById(id);
+  const drop = $("drop"), file = $("file"), preview = $("preview"), hint = $("drop-hint");
+  const go = $("go"), output = $("output"), meta = $("meta"), question = $("question");
+  let imageDataUrl = null;
+  let controller = null;
+
+  function showMessage(text, cls) {
+    output.innerHTML = "";
+    const p = document.createElement("p");
+    p.className = cls;
+    p.textContent = text;
+    output.append(p);
+  }
+
+  function loadFile(f) {
+    if (!f) return;
+    if (!TYPES.includes(f.type)) return showMessage("Please choose a JPEG, PNG, GIF or WebP image.", "error");
+    if (f.size > MAX_BYTES) return showMessage("That image is larger than 5 MB.", "error");
+    const reader = new FileReader();
+    reader.onload = () => {
+      imageDataUrl = reader.result;
+      preview.src = imageDataUrl;
+      preview.classList.remove("hidden");
+      hint.classList.add("hidden");
+      go.disabled = false;
+      showMessage("Ready. Pick a mode and press Analyze.", "placeholder");
+      meta.textContent = "";
+    };
+    reader.readAsDataURL(f);
+  }
+
+  file.addEventListener("change", () => loadFile(file.files[0]));
+  drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", (e) => {
+    e.preventDefault();
+    drop.classList.remove("over");
+    loadFile(e.dataTransfer.files[0]);
+  });
+  document.addEventListener("paste", (e) => {
+    const item = [...e.clipboardData.items].find((i) => i.type.startsWith("image/"));
+    if (item) loadFile(item.getAsFile());
+  });
+
+  document.querySelectorAll('input[name="mode"]').forEach((r) =>
+    r.addEventListener("change", () => question.classList.toggle("hidden", r.value !== "ask" || !r.checked)));
+
+  // Minimal, safe Markdown renderer: escapes everything, then adds a few constructs.
+  function esc(s) {
+    return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function inline(s) {
+    return esc(s)
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<em>$2</em>");
+  }
+  function renderMarkdown(md) {
+    const lines = md.split("\n");
+    let html = "", i = 0;
+    const cells = (row) => row.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+    while (i < lines.length) {
+      const line = lines[i];
+      if (line.startsWith("```")) {
+        const body = [];
+        for (i++; i < lines.length && !lines[i].startsWith("```"); i++) body.push(lines[i]);
+        html += `<pre>${esc(body.join("\n"))}</pre>`;
+        i++;
+      } else if (/^\s*\|/.test(line) && /^\s*\|?\s*:?-{3,}/.test(lines[i + 1] || "")) {
+        html += "<table><thead><tr>" + cells(line).map((c) => `<th>${inline(c)}</th>`).join("") + "</tr></thead><tbody>";
+        for (i += 2; i < lines.length && /^\s*\|/.test(lines[i]); i++) {
+          html += "<tr>" + cells(lines[i]).map((c) => `<td>${inline(c)}</td>`).join("") + "</tr>";
+        }
+        html += "</tbody></table>";
+      } else if (/^\s*([-*]|\d+\.)\s+/.test(line)) {
+        const ordered = /^\s*\d+\./.test(line);
+        html += ordered ? "<ol>" : "<ul>";
+        for (; i < lines.length && /^\s*([-*]|\d+\.)\s+/.test(lines[i]); i++) {
+          html += `<li>${inline(lines[i].replace(/^\s*([-*]|\d+\.)\s+/, ""))}</li>`;
+        }
+        html += ordered ? "</ol>" : "</ul>";
+      } else if (/^#{1,6}\s/.test(line)) {
+        const level = Math.min(line.match(/^#+/)[0].length + 2, 6);
+        html += `<h${level}>${inline(line.replace(/^#+\s*/, ""))}</h${level}>`;
+        i++;
+      } else if (line.trim()) {
+        const para = [];
+        for (; i < lines.length && lines[i].trim() && !/^(\s*[-*|]|\s*\d+\.|#|```)/.test(lines[i]); i++) para.push(lines[i]);
+        if (!para.length) { para.push(line); i++; }
+        html += `<p>${para.map(inline).join("<br>")}</p>`;
+      } else {
+        i++;
+      }
+    }
+    return html;
+  }
+
+  async function analyze() {
+    const mode = document.querySelector('input[name="mode"]:checked').value;
+    if (controller) controller.abort();
+    controller = new AbortController();
+    go.disabled = true;
+    go.textContent = "Analyzing…";
+    showMessage("Looking at the image…", "placeholder");
+    meta.textContent = "";
+    const started = performance.now();
+    let answer = "";
+
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: imageDataUrl, mode, question: question.value }),
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({ error: `Request failed (${res.status}).` }));
+        throw new Error(error);
+      }
+      const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+      let buffer = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += value;
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line) continue;
+          const event = JSON.parse(line);
+          if (event.type === "text") {
+            answer += event.text;
+            output.innerHTML = renderMarkdown(answer);
+          } else if (event.type === "done") {
+            const secs = ((performance.now() - started) / 1000).toFixed(1);
+            meta.textContent = `${event.model} · ${secs}s`;
+          } else if (event.type === "error") {
+            throw new Error(event.message);
+          }
+        }
+      }
+    } catch (err) {
+      if (err.name !== "AbortError") showMessage(err.message, "error");
+    } finally {
+      go.disabled = false;
+      go.textContent = "Analyze";
+    }
+  }
+
+  go.addEventListener("click", analyze);
+</script>
+</body>
+</html>
