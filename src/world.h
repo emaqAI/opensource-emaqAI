@@ -4,16 +4,32 @@
 #include "render.h"
 
 /* The city is laid out as a grid of streets and building lots, Manhattan
- * style: CITY_BLOCKS x CITY_BLOCKS lots, each surrounded by streets.
- * The tile grid therefore has 2*CITY_BLOCKS+1 rows/columns, alternating
- * street (even index) and lot (odd index).
+ * style: CITY_BLOCKS x CITY_BLOCKS lots, each surrounded by streets. The
+ * tile grid therefore has 2*CITY_BLOCKS+1 rows/columns, alternating street
+ * (even index) and lot (odd index).
+ *
+ * Block/street widths are randomized per-tile (not a uniform repeat)
+ * instead of one fixed ROAD_W/LOT_W for every tile - loosely modeled on
+ * Piekary Śląskie, a Upper Silesian town that grew by several separate
+ * village cores (Szarlej, Wielkie Piekary, ...) merging together rather
+ * than from one planned grid, so it reads as more organic than a sterile
+ * repeating grid. MAIN_ROAD_INDEX gets one wider arterial street crossing
+ * both axes near the middle, and PLAZA_ROW/PLAZA_COL - the lot at their
+ * intersection - is left unbuilt as a paved central square instead of a
+ * building.
  */
-#define CITY_BLOCKS   5
-#define TILE_GRID     (2 * CITY_BLOCKS + 1)
-#define ROAD_W        700
-#define LOT_W         1600
-#define BUILD_MIN_H   500
-#define BUILD_MAX_H   3000
+#define CITY_BLOCKS     5
+#define TILE_GRID       (2 * CITY_BLOCKS + 1)
+#define ROAD_W_MIN      600
+#define ROAD_W_MAX      900
+#define MAIN_ROAD_INDEX 4
+#define MAIN_ROAD_W     1400
+#define LOT_W_MIN       1200
+#define LOT_W_MAX       2000
+#define BUILD_MIN_H     500
+#define BUILD_MAX_H     3000
+#define PLAZA_ROW       5
+#define PLAZA_COL       5
 
 #define MAX_BUILDINGS (CITY_BLOCKS * CITY_BLOCKS)
 

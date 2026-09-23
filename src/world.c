@@ -15,18 +15,36 @@ static const TextureId wall_textures[WALL_TEX_COUNT] = { TEX_WALL_CONCRETE, TEX_
 void world_generate(World *w) {
 	int i;
 
+	srand(1337);
+
 	w->tile_offset[0] = 0;
 	for (i = 0; i < TILE_GRID; i++) {
-		int size = (i & 1) ? LOT_W : ROAD_W;
+		int size;
+		if (i & 1) {
+			/* Lot: randomized within a range instead of one repeated
+			 * width, so blocks read as grown-together rather than a
+			 * planned, uniform grid. */
+			size = LOT_W_MIN + (rand() % (LOT_W_MAX - LOT_W_MIN));
+		} else if (i == MAIN_ROAD_INDEX) {
+			/* One wider arterial road crossing both axes near the middle,
+			 * the way a real industrial town has a main thoroughfare
+			 * wider than the residential side streets around it. */
+			size = MAIN_ROAD_W;
+		} else {
+			size = ROAD_W_MIN + (rand() % (ROAD_W_MAX - ROAD_W_MIN));
+		}
 		w->tile_offset[i + 1] = w->tile_offset[i] + size;
 	}
 	w->city_size = w->tile_offset[TILE_GRID];
 
-	srand(1337);
-
 	w->building_count = 0;
 	for (int row = 1; row < TILE_GRID; row += 2) {
 		for (int col = 1; col < TILE_GRID; col += 2) {
+			/* Central plac: paved (drawn by the base road-tile pass
+			 * below), deliberately left without a building. */
+			if ((row == PLAZA_ROW) && (col == PLAZA_COL))
+				continue;
+
 			Building *b = &w->buildings[w->building_count++];
 
 			b->minx = w->tile_offset[col];
@@ -56,13 +74,12 @@ void world_draw(World *w, RenderContext *ctx, MATRIX *cam_mtx, RECT *clip) {
 	Texture *road_tex = texture_get(TEX_ROAD);
 	Texture *roof_tex = texture_get(TEX_ROOF);
 
-	/* Road tiles + lane markings. */
+	/* Base pavement for every tile, roads AND lots alike - buildings (with
+	 * their own sidewalk border) draw on top for tiles that have one, so
+	 * a lot deliberately left without a building (the central plac) reads
+	 * as an open paved square instead of an undrawn gap. */
 	for (int row = 0; row < TILE_GRID; row++) {
 		for (int col = 0; col < TILE_GRID; col++) {
-			int is_lot = (row & 1) && (col & 1);
-			if (is_lot)
-				continue;
-
 			int x0 = w->tile_offset[col],     x1 = w->tile_offset[col + 1];
 			int z0 = w->tile_offset[row],     z1 = w->tile_offset[row + 1];
 
