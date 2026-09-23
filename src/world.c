@@ -159,6 +159,14 @@ void world_draw(World *w, RenderContext *ctx, MATRIX *cam_mtx, RECT *clip) {
 }
 
 int world_collide_circle(World *w, int x, int z, int radius, int *dx, int *dz) {
+	/* Push-out must clear the collision radius by more than exactly 0, or
+	 * integer/SquareRoot0 rounding can leave the circle sitting right back
+	 * on the boundary - which re-triggers "hit" next frame even while
+	 * parked, permanently resetting Vehicle::crash_timer and soft-locking
+	 * the car (speed pinned near 0, "!! KOLIZJA !!" stuck) until the player
+	 * happens to steer away at a different angle than the one they hit at. */
+	const int margin = 8;
+
 	int hit = 0;
 	*dx = 0;
 	*dz = 0;
@@ -185,14 +193,14 @@ int world_collide_circle(World *w, int x, int z, int radius, int *dx, int *dz) {
 			int minz_pen = (pen_t < pen_bo) ? pen_t : pen_bo;
 
 			if (minx_pen < minz_pen)
-				*dx += (pen_l < pen_r) ? -(pen_l + radius) : (pen_r + radius);
+				*dx += (pen_l < pen_r) ? -(pen_l + radius + margin) : (pen_r + radius + margin);
 			else
-				*dz += (pen_t < pen_bo) ? -(pen_t + radius) : (pen_bo + radius);
+				*dz += (pen_t < pen_bo) ? -(pen_t + radius + margin) : (pen_bo + radius + margin);
 		} else {
 			int dist = SquareRoot0(distsq);
 			if (dist < 1)
 				dist = 1;
-			int push = radius - dist;
+			int push = radius + margin - dist;
 			*dx += (ddx * push) / dist;
 			*dz += (ddz * push) / dist;
 		}
