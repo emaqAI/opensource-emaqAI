@@ -55,8 +55,14 @@ static void read_player_controls(int *accel, int *steer, int *handbrake) {
 	}
 }
 
-/* Simple circle-circle push-apart used for player-vs-traffic/police bumps. */
+/* Simple circle-circle push-apart used for player-vs-traffic/police bumps.
+ * Pushes apart by more than exactly rr (sum of radii), for the same reason
+ * world_collide_circle() does in world.c: landing exactly on the boundary
+ * lets rounding put the pair right back in contact next frame, endlessly
+ * re-triggering this and pinning crash_timer/speed instead of separating. */
 static int bump(Vehicle *a, Vehicle *b) {
+	const int margin = 8;
+
 	int dx = vehicle_world_x(a) - vehicle_world_x(b);
 	int dz = vehicle_world_z(a) - vehicle_world_z(b);
 	int rr = a->radius + b->radius;
@@ -68,7 +74,7 @@ static int bump(Vehicle *a, Vehicle *b) {
 	int dist = SquareRoot0(distsq);
 	if (dist < 1)
 		dist = 1;
-	int push = rr - dist;
+	int push = rr + margin - dist;
 
 	int px = (dx * push) / dist;
 	int pz = (dz * push) / dist;
