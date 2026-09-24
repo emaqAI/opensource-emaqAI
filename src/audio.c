@@ -69,6 +69,14 @@ static void start_channel(int ch, int addr, int rate, int vol_l, int vol_r) {
 	SPU_CH_ADSR2(ch) = 0x0000;
 
 	SpuSetKey(1, 1 << ch);
+
+	/* Force the envelope's current volume straight to max instead of
+	 * trusting the ADSR attack-rate field's exact encoding (guessing wrong
+	 * there made playback silent, not just quiet - see the long comment
+	 * this replaced). Directly writing the live envelope-volume register
+	 * skips the ramp-up entirely and is a well-known, simpler way to get
+	 * "instant full volume" on real SPU hardware. */
+	SPU_CH_ADSR_VOL(ch) = 0x7fff;
 }
 
 static int load_vag(const uint8_t *raw, int *out_addr, int *out_sr) {
@@ -89,7 +97,7 @@ void audio_init(void) {
 
 	/* The engine loop plays continuously from boot; only its pitch/volume
 	 * change afterward (see audio_engine_update()), so it never re-clicks. */
-	start_channel(CH_ENGINE, engine_addr, engine_sr, 0x2000, 0x2000);
+	start_channel(CH_ENGINE, engine_addr, engine_sr, 0x2800, 0x2800);
 }
 
 void audio_engine_update(int speed) {
@@ -102,11 +110,18 @@ void audio_engine_update(int speed) {
 	int rate = engine_sr - (engine_sr * 3 / 10)
 		+ (abs_speed * (engine_sr * 13 / 10)) / VEH_MAX_SPEED;
 
-	int vol = 0x1800 + (abs_speed * 0x2400) / VEH_MAX_SPEED;
+	int vol = 0x2800 + (abs_speed * 0x3400) / VEH_MAX_SPEED;
 
 	SPU_CH_FREQ(CH_ENGINE) = getSPUSampleRate(rate);
 	SPU_CH_VOL_L(CH_ENGINE) = vol;
 	SPU_CH_VOL_R(CH_ENGINE) = vol;
+
+	/* Keep pinning the envelope at max - see the comment in
+	 * start_channel(). The hardware's own ADSR state machine keeps
+	 * ticking every audio frame regardless of this write, so a one-time
+	 * force right after key-on isn't enough for a channel that's meant to
+	 * stay audible indefinitely. */
+	SPU_CH_ADSR_VOL(CH_ENGINE) = 0x7fff;
 }
 
 void audio_set_siren(int on) {
